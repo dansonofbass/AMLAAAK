@@ -182,7 +182,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {data
                 ? data.provenance.kind === "illustrative"
                   ? "Illustrative sample · Not live market data"
-                  : "Retrieved historical Divar records · bounded coverage"
+                  : data.provenance.provider === "prepared"
+                    ? "Prepared historical archive · not active listings"
+                    : "Retrieved historical Divar records · bounded coverage"
                 : "Connecting to data source"}
             </span>
             <span>Original source units · Currency unverified</span>

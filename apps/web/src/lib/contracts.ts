@@ -21,6 +21,7 @@ export const coverageSchema = z.object({
   sorting_scope: z.string(),
   method: z.string(),
   limitations: z.array(z.string()),
+  source_processing_complete: z.boolean().nullable().optional(),
 });
 export const provenanceSchema = z.object({
   kind: z.enum(["illustrative", "divar"]),
