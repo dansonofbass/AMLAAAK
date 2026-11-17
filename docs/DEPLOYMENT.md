@@ -69,29 +69,102 @@ For the original illustrative model, the existing `model_training.py` and `scrip
 
 Each app has an .env.example. Next reads apps/web/.env.local; Uvicorn does not automatically read the API example. Export API variables in your shell or configure them on the host. Do not expose origin, credentials or artifact configuration using NEXT_PUBLIC prefixes.
 
-## Two Vercel projects
+## Two Vercel projects: approved real-model deployment
 
-Current official documentation was verified for the [FastAPI entrypoint](https://vercel.com/docs/frameworks/backend/fastapi), [Python runtime](https://vercel.com/docs/functions/runtimes/python), and [limits](https://vercel.com/docs/functions/limitations). Python 3.14 and native main:app entrypoints are supported. The checked-in API manifests use that runtime; no legacy catch-all builds configuration is added.
+These are manual next steps; no push or deployment has been performed. The native FastAPI entrypoint is `main:app` in `apps/api`; no rewrite/catch-all build configuration or training build command is needed.
 
-1. After approving publication, create a Vercel project with Root Directory `apps/api`. Keep native FastAPI detection/default dependency installation. No data-acquisition or training build command is used. Runtime includes httpx/Pydantic/FastAPI; the default API excludes sklearn dependencies.
-2. Set `AMLAAAK_DATA_MODE=huggingface`, `HF_MAX_RECORDS=300`, and optionally `AMLAAAK_API_TOKEN`/`HF_TOKEN`. No writable persistent database exists. Health may report dataset readiness false until a successful lazy query; an unavailable model does not disable analytics.
-3. Deploy a second Vercel project rooted at `apps/web`, framework Next.js, Node 24, install `npm ci`, build `npm run build`, default output settings. Set server-only API_BASE_URL and optional matching API_TOKEN for every intended environment.
-4. Verify the frontend proxy, source coverage, city filters and properties. Configure authorized cross-project access if Vercel Deployment Protection applies; the app bearer token is not a Vercel bypass token. Never expose bypass credentials in a browser.
-5. No trained model binary is present in a Git-import deployment automatically. Either leave it honestly unavailable or provision a reviewed compatible bundle and inference dependencies as described below.
+### 1. Backend project (`apps/api`)
 
-Python's standard uncompressed function limit is currently 500 MB. Exact installed ML footprint, cold-start time and memory usage must be checked in the target account. The configured API maxDuration is 30 seconds. The proxy times out at 28 seconds; dataset calls have per-request timeouts, bounded retries, bounded pages and cache. Default retrieval is intentionally small. Increase limits only after measuring the actual deployment. Google fonts are fetched by next/font at build time and served locally to browsers.
+1. Import the reviewed repository into a Vercel project with **Root Directory `apps/api`** and native **FastAPI** detection. Keep default install/build/output commands. `pyproject.toml` requires Python `>=3.14,<3.15`; both dependency manifests include the exact model-compatible packages:
 
-### Model provisioning
+   | Package | Required version |
+   | --- | --- |
+   | numpy | 2.4.3 |
+   | pandas | 3.0.1 |
+   | scikit-learn | 1.8.0 |
+   | joblib | 1.5.3 |
 
-Local bundles require explicit AMLAAAK_MODEL_DIR. Optional remote provisioning requires an operator-approved Hugging Face model repository, exact revision, and independently trusted manifest SHA-256. The provider downloads only manifest.json, metadata.json and model.joblib, applies 128 KB / 2 MB / 100 MB download guards, verifies hashes, then checks package versions before trusted loading. It does not download training data. No model-repository URL was invented, no artifact was uploaded, and remote model hosting was not exercised in this session. Deterministic trust-guard tests cover provisioning; actual inference was verified with the locally exported genuine model.
+2. Enable Fluid compute in the project. The checked-in `vercel.json` supplies these public, non-secret runtime settings. Keep any dashboard overrides identical for Production and the Preview environments you intend to test:
 
-Provisioned artifacts use a worker-local temporary directory. It is not persistent Vercel storage and is not a replacement for a model registry. Startup provisioning runs once per worker, not per valuation. Only load artifacts from a source you trust: integrity checks do not make arbitrary pickle/joblib safe.
+   ```dotenv
+   AMLAAAK_DATA_MODE=huggingface
+   HF_MAX_RECORDS=300
+   AMLAAAK_MODEL_REPO=thevel0per/AMLAAAK-Price-Predictor
+   AMLAAAK_MODEL_REVISION=89de24728daecdec3731e07475ab985c1efa87ad
+   AMLAAAK_MODEL_MANIFEST_SHA256=a8d51e5f441b30a541b92ac33fb7838a39c0d8da1ce5b051cd3a67e55e98d3e5
+   OMP_NUM_THREADS=1
+   OPENBLAS_NUM_THREADS=1
+   MKL_NUM_THREADS=1
+   ```
 
-On Vercel, add the exact ML package versions recorded in the metadata to the API dependency manifests only if its built function fits. Verify the bundle/cold start before enabling inference. Otherwise retain the Vercel frontend and use the container alternative. No successful hosted inference deployment is claimed.
+   **Remove `AMLAAAK_MODEL_DIR`** from hosted environments: a local path takes precedence over remote provisioning. Remove stale snapshot settings. Public model/data access succeeded without `HF_TOKEN`; add a server-only token only if needed. Optionally set a strong secret `AMLAAAK_API_TOKEN`, and later use the same value in the web project's `API_TOKEN`.
+
+3. After you choose to publish the local commits and deploy, inspect build output for Python 3.14, all four exact ML versions, and actual function size. `vercel.json` excludes model bundles, CSV/Parquet and local development files. No model or training dataset is committed or downloaded during the build. The worker downloads the three approved model files at startup into temporary storage.
+4. Visit `https://<api-domain>/api/v1/health`: expect `model_available: true` and `provider: huggingface`. Dataset readiness may be false before its first lazy request. With an app token, send `Authorization: Bearer <token>` for the remaining checks. `GET /api/v1/model/status` must return `available: true`, `mode: trained`, `version: 267eff7c36f3`. Check logs rather than accepting a model-unavailable status as success.
+5. Submit the valuation request below, then repeat it to check warm latency. Confirm a positive prediction and genuine comparable source identities with explicit bounded coverage. A dataset outage may preserve a model estimate but return zero coverage; this is not successful comparable retrieval.
+
+### 2. Frontend project (`apps/web`)
+
+1. Create a separate Vercel project with **Root Directory `apps/web`**, framework **Next.js**, Node **24.x**, install command `npm ci`, build command `npm run build`, and default output settings.
+2. Configure **server-side** `API_BASE_URL=https://<api-domain>` with no `/api/v1` suffix. If enabled on the backend, set matching `API_TOKEN`. Set them separately for Production/Preview as appropriate, then redeploy after changes. Never use `NEXT_PUBLIC_` for these values.
+3. The browser calls same-origin `/api/v1/...`; the Next route reads `process.env.API_BASE_URL` at request time and forwards the optional bearer token. No direct browser-to-backend configuration or public origin variable is needed. Cross-project Vercel Deployment Protection must permit this server-to-server request: app bearer tokens do not bypass Vercel protection. Configure project access deliberately; this repository does not implement a protection-bypass credential flow.
+4. Open `/predict`, select Tehran and a neighborhood, and submit. Verify the model label/version, positive estimate, genuine historical comparables, and coverage warning. Exercise city filters and inspect server logs on both projects. Run the live browser suite against the hosted frontend only after authorizing deployment.
+
+### Model trust and lifecycle
+
+The approved public model is [thevel0per/AMLAAAK-Price-Predictor](https://huggingface.co/thevel0per/AMLAAAK-Price-Predictor/tree/89de24728daecdec3731e07475ab985c1efa87ad). The manifest hash above was independently supplied by the operator and verified against the public response. The loader fetches only `manifest.json`, `metadata.json`, and `model.joblib`, enforcing 128 KB / 2 MB / 100 MB download guards. It verifies the manifest trust hash, metadata/model hashes, exact four package versions and the feature contract before serving predictions. Integrity checks do not make arbitrary pickle/joblib safe: retain the approved source and update revision/hash together after review.
+
+The model is loaded once per process, not per valuation. Each new worker downloads its own copy into ephemeral temporary storage; this is not persistent storage. A failed startup provisioning leaves inference explicitly unavailable until a fresh worker/redeployment; no request-time retraining or fake prediction fallback occurs. Live Divar retrieval stays separate and lazy through the official dataset server.
+
+### Size, memory, duration and cold starts
+
+Official [Python runtime](https://vercel.com/docs/functions/runtimes/python) and [function limits](https://vercel.com/docs/functions/limitations) were checked for this preparation. Python 3.14 is supported. The standard Python bundle limit is **500 MB uncompressed**; Large Functions beta is not required by this configuration. Fluid compute memory is **2 GB on Hobby**, up to **4 GB on Pro/Enterprise**. Confirm the settings and limits available in your account.
+
+A Linux x86-64 CPython 3.14 binary-only resolution of API requirements succeeded: 25 wheels, 76,418,726 compressed bytes and 251,772,240 uncompressed bytes (including SciPy). This is an estimate of dependency contents, **not an actual Vercel function build**: installed files, generated bytecode, platform dependency resolution and runtime overhead can change size. The remote model is outside the deployed bundle, but occupies temporary disk and process memory after startup. Inspect the actual function build before approving hosted readiness.
+
+The API and Next proxy have `maxDuration=60`; the proxy aborts upstream fetches after **55 seconds**, leaving response headroom. Fluid compute permits this duration on current Hobby/Pro plans. Enable Fluid compute rather than relying on legacy limits. These settings are upper bounds, not latency guarantees. HF streaming uses per-operation timeouts, not one total startup deadline; a slow model CDN or dataset retry can still exceed the proxy budget. Do not add automatic request retries to hide timeouts.
+
+Actual Windows verification downloaded/verified/loaded the public model in **9.487 seconds**; first genuine-data valuation took **7.840 seconds** and returned **8 comparables**, examining 300 source rows. The standalone API process had about **196 MB working set** after live browser checks. These are single local observations, not Vercel benchmarks or worst-case memory/latency. Hosted cold starts, egress, dependency imports, worker scaling, dataset rate limits and concurrent requests remain risks requiring a real Preview deployment measurement. Cache and loaded model are process-local. Google fonts require outbound access during the Next build.
+
+### Repeat the public-model verification locally
+
+From the repository root after installing `requirements-api-dev.txt`:
+
+```powershell
+$env:AMLAAAK_RUN_REMOTE_MODEL_TESTS='1'
+.\.venv\Scripts\python -m pytest -q -s tests/test_deployment_model.py -m live
+```
+
+This opt-in test downloads the actual pinned public model through the production integrity loader, runs direct inference, and submits a real FastAPI POST with genuine HF data retrieval. It does not substitute mocked model or dataset responses.
+
+To run the same API project-root import as Vercel:
+
+```powershell
+cd apps/api
+$deployConfig=Get-Content vercel.json -Raw | ConvertFrom-Json
+foreach ($setting in $deployConfig.env.PSObject.Properties) {
+    [Environment]::SetEnvironmentVariable($setting.Name,[string]$setting.Value,'Process')
+}
+Remove-Item Env:AMLAAAK_MODEL_DIR -ErrorAction SilentlyContinue
+..\..\.venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+In another PowerShell terminal, substitute the hosted origin when checking Vercel. Add an Authorization header if app authentication is enabled:
+
+```powershell
+$body=@{
+    city_slug='tehran'; cat3_slug='apartment-sell'; building_size=90
+    rooms_count=2; floor=2; total_floors_count=5; construction_year=1395
+    has_parking=$true; has_elevator=$true; has_balcony=$false; has_warehouse=$false
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/api/v1/valuation' -ContentType 'application/json' -Body $body
+```
+
+The verified request returned `predicted_price=6076080000.0` in unverified original price units, model version `267eff7c36f3`. This is an inference check, not a new accuracy result. See REAL_DATA_EXPERIMENT.json for held-out evaluation.
 
 ## Render / Docker alternative
 
-The root Dockerfile and render.yaml remain supported, without a database service or persistent SQLite requirement. The default Render blueprint deploys the lean live-data API with a generated app token. Review the hosting plan before creating resources; copy the generated token to the Vercel frontend's API_TOKEN and use Render's HTTPS origin as API_BASE_URL.
+The root Dockerfile and render.yaml remain supported, without a database service or persistent SQLite requirement. The default Render blueprint deploys the model-capable live-data API with a generated app token. Review the hosting plan before creating resources; copy the generated token to the Vercel frontend's API_TOKEN and use Render's HTTPS origin as API_BASE_URL.
 
 ```powershell
 docker build -t amlaaak-api .
@@ -109,7 +182,7 @@ The Docker context can include the explicitly prepared ignored bundle; Git canno
 
 ## Checks and screenshots
 
-From root: install requirements-api-dev.txt, then run `.\.venv\Scripts\python -m pytest -q` and `python -m pip check` through the venv. The default Python suite runs without network access; two live tests are explicitly skipped.
+From root: install requirements-api-dev.txt, then run `.\.venv\Scripts\python -m pytest -q` and `python -m pip check` through the venv. The default Python suite runs without network access; three network tests are explicitly skipped (two dataset tests and one remote-model test).
 
 ```powershell
 $env:AMLAAAK_RUN_LIVE_TESTS='1'

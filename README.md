@@ -225,3 +225,7 @@ Next steps are a documented full-data experiment, temporal/geographic validation
 ## Development history
 
 All commits present at valuation-platform baseline f7f6f8c, including their authors and dates, are preserved. New work uses Conventional Commits without rewriting or force-pushing. See [the original audit](docs/AUDIT.md) for the earlier ML cleanup and [validation](docs/VALIDATION.md) for this application's scope and checks. No push or deployment was performed.
+
+### Deploy the approved trained model
+
+The public, revision-pinned Random Forest model has been downloaded and verified through the production loader, and exercised through real valuation and frontend proxy integration. Both API dependency manifests now include the exact compatible ML versions. Follow [the Vercel setup](docs/DEPLOYMENT.md#two-vercel-projects-approved-real-model-deployment) for the two project roots, pinned artifact settings, server-side API_BASE_URL and hosted acceptance checks. No hosted deployment or hosted performance verification has been performed.

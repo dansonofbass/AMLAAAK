@@ -36,4 +36,18 @@ Screenshots are ignored under apps/web/test-results. The system-browser bridge w
 
 Windows, Python 3.14.7, Node 24.18.0, Next.js 16.4.6, React 19.3.1. A damaged local dependency installation was preserved outside the frontend tree and replaced from the lockfile. Windows sandbox process-launch error 1909 required the host executor for later checks. Host access to the old pytest system-temp/cache directories failed; final pytest used a fresh verified workspace-local --basetemp and -o cache_dir under ignored data/. No tests were removed or skipped to hide failures. Stale verified AMLAAAK servers were restarted; unrelated applications were untouched. These environment failures were not hidden as successful tests; final checks ran against the repaired installation and current routes.
 
-No deployment or push was attempted. Vercel entrypoint/runtime/limits were checked against official documentation, but target-host bundle footprint/cold starts and hosted inference remain unverified. The Docker daemon was unavailable; container/Render configuration is implemented and documented but execution is unverified. Remote model hosting/provisioning was not exercised with an approved real repository because none was provided; trust guards were tested with mocked external HTTP only. No managed database was introduced.
+No deployment or push was attempted. Vercel entrypoint/runtime/limits were checked against official documentation, but target-host bundle footprint/cold starts and hosted inference remain unverified. The Docker daemon was unavailable; container/Render configuration is implemented and documented but execution is unverified. At the original platform validation, remote provisioning had not yet been exercised. The subsequent approved public-model verification below supersedes that limitation. No managed database was introduced.
+
+## Approved public-model deployment preparation
+
+The operator subsequently supplied `thevel0per/AMLAAAK-Price-Predictor` at immutable revision `89de24728daecdec3731e07475ab985c1efa87ad` and trusted manifest SHA-256 `a8d51e5f441b30a541b92ac33fb7838a39c0d8da1ce5b051cd3a67e55e98d3e5`. The production loader actually downloaded all three public files, verified integrity and exact package versions, and loaded model `267eff7c36f3`. Direct prediction and real POST `/api/v1/valuation` returned 6,076,080,000 source units for the documented Tehran input, plus eight genuine Divar comparables from 300 examined source rows. No successful external responses were mocked.
+
+- Deterministic Python suite after deployment checks: 76 passed, 3 opt-in network tests skipped.
+- Public remote-model/inference/valuation integration: 1 passed.
+- Actual dataset connectivity/API integration: 2 passed.
+- Frontend unit tests: 11 passed; typecheck, ESLint and production build passed.
+- Live Playwright against production Next build and API imported from `apps/api`, using remote model configuration: 2 passed. Server-side `API_BASE_URL` forwarding and genuine model/comparable results worked.
+- `pip check`: no broken requirements.
+- Linux CPython 3.14 binary dependency resolution: 25 wheels, 251,772,240 uncompressed bytes. This is not a hosted function build.
+
+Local provisioning took 9.487 seconds; first valuation 7.840 seconds. API working set after live browser checks was 196,136,960 bytes. These single Windows measurements are not hosted latency/memory guarantees. Hosted bundle size, cold starts, concurrency, platform protection and execution remain unverified. No model/dataset binaries were committed, no push/deployment occurred, and existing history was preserved. Exact setup and next steps are in DEPLOYMENT.md.

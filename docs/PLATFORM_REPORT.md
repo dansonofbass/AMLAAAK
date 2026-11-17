@@ -33,3 +33,7 @@ Exact Windows commands are in DEPLOYMENT.md. Expected URLs: backend 127.0.0.1:80
 Failed upstream filtering, bounded-prefix bias, source outliers, unverified units, historical/stale advertisements, heuristic duplicate/ranking logic, incomplete mapped city coverage, no verified city-limit polygons, no calibrated confidence intervals and untested hosted ML footprint remain explicit. No fake URLs/photos, prices, market volumes or live-status claims were added.
 
 New work is organized into descriptive local Conventional Commits; inspect git log --oneline from the baseline f7f6f8c. All previous commits/authors remain unchanged. Full dataset/source files, model binaries, credentials, recovery dependencies and QA outputs were not committed. Nothing was pushed or deployed.
+
+## Subsequent approved remote-model preparation
+
+The operator subsequently provided the approved public model repository, revision and manifest hash. Actual remote download, integrity checks, inference, valuation and frontend proxy integration now pass. Vercel runtime manifests include exact ML versions and pinned public artifact settings. This supersedes the earlier remote-provisioning limitation above; hosted deployment remains unverified. See DEPLOYMENT.md and the final section of VALIDATION.md for exact settings, measured local evidence and acceptance steps.
