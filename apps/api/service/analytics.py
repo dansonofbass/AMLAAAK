@@ -3,7 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 from statistics import mean, median
-from .schemas import Snapshot, Filters, Property, City, Bin, Count, Amenity, Distributions
+from .schemas import Snapshot, Filters, Property, City, Bin, Count, Amenity, Distributions, Coverage
 
 # Approximate public city centers, NOT listing coordinates. Unmapped cities remain in tables.
 CITY_CENTERS = {'tehran': (35.69, 51.39), 'karaj': (35.83, 50.99),
@@ -12,6 +12,7 @@ CITY_CENTERS = {'tehran': (35.69, 51.39), 'karaj': (35.83, 50.99),
                 'ahvaz': (31.32, 48.67), 'rasht': (37.28, 49.58),
                 'qom': (34.64, 50.88), 'kermanshah': (34.31, 47.07),
                 'yazd': (31.90, 54.37), 'bandar-abbas': (27.18, 56.27)}
+CITY_CENTERS['isfahan'] = CITY_CENTERS['esfahan']  # Observed official slug; preserve legacy fixture slug too.
 
 
 class Repository:
@@ -36,10 +37,12 @@ class Repository:
                 continue
             if f.property_type and row.cat3_slug != f.property_type:
                 continue
+            if f.neighborhood and row.neighborhood_slug != f.neighborhood:
+                continue
             if f.search.lower() not in f'{row.city_slug} {row.cat3_slug} {row.id}'.lower():
                 continue
             rejected = False
-            for name, value in [('area', row.building_size), ('price', row.price_value), ('year', row.construction_year)]:
+            for name, value in [('area', row.building_size), ('price', row.price_value), ('year', row.construction_year), ('bedrooms', row.rooms_count)]:
                 low, high = getattr(f, name + '_min'), getattr(f, name + '_max')
                 if (low is not None or high is not None) and value is None:
                     rejected = True
@@ -48,6 +51,19 @@ class Repository:
             if not rejected:
                 result.append(row)
         return result
+
+    def population(self, filters):
+        return self
+
+    def provenance_for(self, rows):
+        source = self.snapshot.provenance
+        coverage = source.coverage.model_copy(deep=True) if source.coverage else Coverage(
+            records_examined=source.input_rows, normalized_records=len(self.rows), eligible_records=len(rows),
+            upstream_matching_rows=source.input_rows, exhaustive=True, bounded=False,
+            statistics_full_population=True, remote_filter_supported=False, method='complete_local_snapshot',
+            limitations=['Exhaustive only for the configured local snapshot, not the Divar market.'])
+        coverage.eligible_records = len(rows)
+        return source.model_copy(update={'coverage': coverage})
 
 
 def city_aggregates(rows):
