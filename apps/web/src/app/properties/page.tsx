@@ -1,2 +1,4 @@
-import { PropertiesPage } from '@/components/properties';
-export default function Page(){return <PropertiesPage/>;}
+import { PropertiesPage } from "@/components/properties";
+export default function Page() {
+  return <PropertiesPage />;
+}

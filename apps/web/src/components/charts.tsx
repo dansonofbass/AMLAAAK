@@ -1,25 +1,343 @@
-'use client';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
-import type { City, Distributions } from '@/lib/contracts';
-import { compact, propertyLabel, title } from '@/lib/utils';
-const CYAN = '#42d4e6', VIOLET = '#9682f9';
-const tip = { background: '#181d29', border: '1px solid #353b51', borderRadius: 10, color: '#eee', fontSize: 11 };
-export function Histogram({ bins, color = VIOLET, onRange, unit = '' }: { bins: Distributions['price']; color?: string; onRange?: (min: number, max: number) => void; unit?: string }) {
-  return <div className="chart-fill"><ResponsiveContainer width="100%" height="100%"><BarChart data={bins} margin={{ top: 10, right: 4, left: -28, bottom: 0 }}><CartesianGrid vertical={false} stroke="#2a3040" strokeDasharray="3 5"/><XAxis dataKey="lower" tickFormatter={v => compact(Number(v))} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8d96ab' }} minTickGap={12}/><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#8d96ab' }}/><Tooltip contentStyle={tip} cursor={{ fill: '#ffffff07' }} labelFormatter={(_, payload) => payload?.length ? `${compact(payload[0].payload.lower)}–${compact(payload[0].payload.upper)} ${unit}` : ''}/><Bar isAnimationActive={false} dataKey="count" name="Listings" radius={[4,4,0,0]} maxBarSize={35}>{bins.map((bin,i) => <Cell key={i} fill={color} fillOpacity={0.55 + i * 0.06} cursor={onRange ? 'pointer' : 'default'} onClick={() => onRange?.(bin.lower, bin.upper)}/>)}</Bar></BarChart></ResponsiveContainer></div>;
+"use client";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZAxis,
+} from "recharts";
+import type { City, Distributions } from "@/lib/contracts";
+import { compact, propertyLabel, title } from "@/lib/utils";
+const CYAN = "#42d4e6",
+  VIOLET = "#9682f9";
+const tip = {
+  background: "#181d29",
+  border: "1px solid #353b51",
+  borderRadius: 10,
+  color: "#eee",
+  fontSize: 11,
+};
+export function Histogram({
+  bins,
+  color = VIOLET,
+  onRange,
+  unit = "",
+}: {
+  bins: Distributions["price"];
+  color?: string;
+  onRange?: (min: number, max: number) => void;
+  unit?: string;
+}) {
+  return (
+    <div className="chart-fill">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={bins}
+          margin={{ top: 10, right: 4, left: -28, bottom: 0 }}
+        >
+          <CartesianGrid
+            vertical={false}
+            stroke="#2a3040"
+            strokeDasharray="3 5"
+          />
+          <XAxis
+            dataKey="lower"
+            tickFormatter={(v) => compact(Number(v))}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 9, fill: "#8d96ab" }}
+            minTickGap={12}
+          />
+          <YAxis
+            allowDecimals={false}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 9, fill: "#8d96ab" }}
+          />
+          <Tooltip
+            contentStyle={tip}
+            cursor={{ fill: "#ffffff07" }}
+            labelFormatter={(_, payload) =>
+              payload?.length
+                ? `${compact(payload[0].payload.lower)}–${compact(payload[0].payload.upper)} ${unit}`
+                : ""
+            }
+          />
+          <Bar
+            isAnimationActive={false}
+            dataKey="count"
+            name="Listings"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={35}
+          >
+            {bins.map((bin, i) => (
+              <Cell
+                key={i}
+                fill={color}
+                fillOpacity={0.55 + i * 0.06}
+                cursor={onRange ? "pointer" : "default"}
+                onClick={() => onRange?.(bin.lower, bin.upper)}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
-export function AmenityRadar({ data }: { data: Distributions['amenities'] }) {
-  return <div className="chart-fill"><ResponsiveContainer width="100%" height="100%"><RadarChart data={data} outerRadius="65%"><PolarGrid stroke="#30384b"/><PolarAngleAxis dataKey="label" tick={{ fontSize: 10, fill: '#a4acc0' }}/><PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/><Radar isAnimationActive={false} name="Present (% of known)" dataKey="percent" stroke={VIOLET} fill={VIOLET} fillOpacity={0.26} dot={{ r: 3, fill: CYAN }}/><Tooltip contentStyle={tip} formatter={(v) => `${Number(v).toFixed(0)}% of known`}/></RadarChart></ResponsiveContainer></div>;
+export function AmenityRadar({ data }: { data: Distributions["amenities"] }) {
+  return (
+    <div className="chart-fill">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart data={data} outerRadius="65%">
+          <PolarGrid stroke="#30384b" />
+          <PolarAngleAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: "#a4acc0" }}
+          />
+          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+          <Radar
+            isAnimationActive={false}
+            name="Present (% of known)"
+            dataKey="percent"
+            stroke={VIOLET}
+            fill={VIOLET}
+            fillOpacity={0.26}
+            dot={{ r: 3, fill: CYAN }}
+          />
+          <Tooltip
+            contentStyle={tip}
+            formatter={(v) => `${Number(v).toFixed(0)}% of known`}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
-export function PriceScatter({ data, onCity }: { data: Distributions['price_area']; onCity?: (city: string) => void }) {
-  return <div className="chart-fill"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ top: 12, right: 16, left: -12, bottom: 4 }}><CartesianGrid stroke="#293142" strokeDasharray="2 6"/><XAxis type="number" dataKey="area" name="Area (m²)" tick={{ fill: '#9ba4b7', fontSize: 10 }} axisLine={false} tickLine={false}/><YAxis type="number" dataKey="price" name="Asking price" tickFormatter={compact} tick={{ fill: '#9ba4b7', fontSize: 10 }} axisLine={false} tickLine={false}/><ZAxis range={[100,260]}/><Tooltip contentStyle={tip} cursor={{ strokeDasharray: '3 3' }}/><Scatter isAnimationActive={false} name="Eligible sales" data={data} fill={VIOLET} fillOpacity={0.45} stroke={VIOLET}>{data.map((point,i) => <Cell key={point.id} cursor="pointer" onClick={() => onCity?.(point.city)} fill={i % 2 ? CYAN : VIOLET} stroke={i % 2 ? CYAN : VIOLET}/>)}</Scatter></ScatterChart></ResponsiveContainer></div>;
+export function PriceScatter({
+  data,
+  onCity,
+}: {
+  data: Distributions["price_area"];
+  onCity?: (city: string) => void;
+}) {
+  return (
+    <div className="chart-fill">
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 12, right: 16, left: -12, bottom: 4 }}>
+          <CartesianGrid stroke="#293142" strokeDasharray="2 6" />
+          <XAxis
+            type="number"
+            dataKey="area"
+            name="Area (m²)"
+            tick={{ fill: "#9ba4b7", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            type="number"
+            dataKey="price"
+            name="Asking price"
+            tickFormatter={compact}
+            tick={{ fill: "#9ba4b7", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <ZAxis range={[100, 260]} />
+          <Tooltip contentStyle={tip} cursor={{ strokeDasharray: "3 3" }} />
+          <Scatter
+            isAnimationActive={false}
+            name="Eligible sales"
+            data={data}
+            fill={VIOLET}
+            fillOpacity={0.45}
+            stroke={VIOLET}
+          >
+            {data.map((point, i) => (
+              <Cell
+                key={point.id}
+                cursor="pointer"
+                onClick={() => onCity?.(point.city)}
+                fill={i % 2 ? CYAN : VIOLET}
+                stroke={i % 2 ? CYAN : VIOLET}
+              />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
-export function CityBars({ cities, onCity }: { cities: City[]; onCity: (city: string) => void }) {
-  return <div className="chart-fill"><ResponsiveContainer width="100%" height="100%"><BarChart data={cities.slice(0,12)} layout="vertical" margin={{ top: 6, right: 16, left: 0, bottom: 0 }}><CartesianGrid horizontal={false} stroke="#293142" strokeDasharray="2 5"/><XAxis type="number" tickFormatter={compact} tick={{ fill: '#8d96ab', fontSize: 9 }} axisLine={false} tickLine={false}/><YAxis interval={0} type="category" dataKey="city" tickFormatter={title} width={66} tick={{ fill: '#b7bed0', fontSize: 10 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={tip} labelFormatter={label=>title(String(label))} formatter={v=>compact(Number(v))}/><Bar isAnimationActive={false} dataKey="median_price_per_sqm" name="Median / m²" radius={[0,4,4,0]} maxBarSize={16}>{cities.slice(0,12).map((city,i) => <Cell key={city.city} fill={i % 2 ? CYAN : VIOLET} fillOpacity={0.8} cursor="pointer" onClick={() => onCity(city.city)}/>)}</Bar></BarChart></ResponsiveContainer></div>;
+export function CityBars({
+  cities,
+  onCity,
+}: {
+  cities: City[];
+  onCity: (city: string) => void;
+}) {
+  return (
+    <div className="chart-fill">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={cities.slice(0, 12)}
+          layout="vertical"
+          margin={{ top: 6, right: 16, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid
+            horizontal={false}
+            stroke="#293142"
+            strokeDasharray="2 5"
+          />
+          <XAxis
+            type="number"
+            tickFormatter={compact}
+            tick={{ fill: "#8d96ab", fontSize: 9 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            interval={0}
+            type="category"
+            dataKey="city"
+            tickFormatter={title}
+            width={66}
+            tick={{ fill: "#b7bed0", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            contentStyle={tip}
+            labelFormatter={(label) => title(String(label))}
+            formatter={(v) => compact(Number(v))}
+          />
+          <Bar
+            isAnimationActive={false}
+            dataKey="median_price_per_sqm"
+            name="Median / m²"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={16}
+          >
+            {cities.slice(0, 12).map((city, i) => (
+              <Cell
+                key={city.city}
+                fill={i % 2 ? CYAN : VIOLET}
+                fillOpacity={0.8}
+                cursor="pointer"
+                onClick={() => onCity(city.city)}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
-export function PropertyDonut({ data, onType }: { data: Distributions['property_types']; onType: (type: string) => void }) {
-  return <div className="donut-chart"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie isAnimationActive={false} data={data} dataKey="count" nameKey="label" innerRadius="55%" outerRadius="80%" paddingAngle={4} stroke="none">{data.map((row,i) => <Cell key={row.label} fill={i ? CYAN : VIOLET} cursor="pointer" onClick={() => onType(row.label)}/>)}</Pie><Tooltip contentStyle={tip} formatter={(v, name) => [v, propertyLabel(String(name))]}/></PieChart></ResponsiveContainer><div className="donut-legend">{data.map((row,i) => <button key={row.label} onClick={() => onType(row.label)}><i style={{ background: i ? CYAN : VIOLET }}/>{propertyLabel(row.label)}<b>{row.count}</b></button>)}</div></div>;
+export function PropertyDonut({
+  data,
+  onType,
+}: {
+  data: Distributions["property_types"];
+  onType: (type: string) => void;
+}) {
+  return (
+    <div className="donut-chart">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            isAnimationActive={false}
+            data={data}
+            dataKey="count"
+            nameKey="label"
+            innerRadius="55%"
+            outerRadius="80%"
+            paddingAngle={4}
+            stroke="none"
+          >
+            {data.map((row, i) => (
+              <Cell
+                key={row.label}
+                fill={i ? CYAN : VIOLET}
+                cursor="pointer"
+                onClick={() => onType(row.label)}
+              />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={tip}
+            formatter={(v, name) => [v, propertyLabel(String(name))]}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="donut-legend">
+        {data.map((row, i) => (
+          <button key={row.label} onClick={() => onType(row.label)}>
+            <i style={{ background: i ? CYAN : VIOLET }} />
+            {propertyLabel(row.label)}
+            <b>{row.count}</b>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
-export function CountArea({ bins }: { bins: Distributions['year'] }) {
-  return <div className="chart-fill"><ResponsiveContainer width="100%" height="100%"><AreaChart data={bins} margin={{ left: -28, right: 12, top: 8 }}><defs><linearGradient id="year-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={CYAN} stopOpacity={0.35}/><stop offset="100%" stopColor={CYAN} stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#293142" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="lower" tickFormatter={v=>String(Math.round(v))} axisLine={false} tickLine={false} tick={{ fill: '#8d96ab', fontSize: 10 }}/><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#8d96ab', fontSize: 10 }}/><Tooltip contentStyle={tip}/><Area isAnimationActive={false} dataKey="count" name="Listings per year bin" type="linear" stroke={CYAN} fill="url(#year-fill)" dot={{ r: 3 }}/></AreaChart></ResponsiveContainer></div>;
+export function CountArea({ bins }: { bins: Distributions["year"] }) {
+  return (
+    <div className="chart-fill">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={bins} margin={{ left: -28, right: 12, top: 8 }}>
+          <defs>
+            <linearGradient id="year-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CYAN} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={CYAN} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid
+            stroke="#293142"
+            strokeDasharray="3 5"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="lower"
+            tickFormatter={(v) => String(Math.round(v))}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#8d96ab", fontSize: 10 }}
+          />
+          <YAxis
+            allowDecimals={false}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#8d96ab", fontSize: 10 }}
+          />
+          <Tooltip contentStyle={tip} />
+          <Area
+            isAnimationActive={false}
+            dataKey="count"
+            name="Listings per year bin"
+            type="linear"
+            stroke={CYAN}
+            fill="url(#year-fill)"
+            dot={{ r: 3 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 export { Legend };

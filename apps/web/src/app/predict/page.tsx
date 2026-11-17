@@ -1,2 +1,4 @@
-import { PredictionPage } from '@/components/prediction';
-export default function Page() { return <PredictionPage/>; }
+import { PredictionPage } from "@/components/prediction";
+export default function Page() {
+  return <PredictionPage />;
+}
