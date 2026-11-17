@@ -67,7 +67,9 @@ def valuate(subject, store, inference):
         provenance = population.provenance_for(candidates)
     except UpstreamUnavailable as exc:
         candidates=[]
-        provenance=Provenance(kind='divar',provider='huggingface',source_url=SOURCE,source_sha256=None,
+        provider_name=getattr(store,'provider_name','huggingface')
+        source_url=f'https://huggingface.co/datasets/{store.repo}' if provider_name=='prepared' else SOURCE
+        provenance=Provenance(kind='divar',provider=provider_name,source_url=source_url,source_sha256=None,
             revision=getattr(store,'revision',None) or 'unavailable',input_rows=0,eligible_rows=0,
             note='Comparable data is unavailable. No substitute observations were generated.',
             coverage=Coverage(records_examined=0,normalized_records=0,eligible_records=0,

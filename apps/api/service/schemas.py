@@ -36,6 +36,7 @@ class Coverage(Contract):
     sorting_scope: str = 'retrieved_records'
     method: str
     limitations: list[str] = Field(default_factory=list)
+    source_processing_complete: bool | None = None
 
 
 class Property(Contract):

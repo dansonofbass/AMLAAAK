@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "env": {
-    "AMLAAAK_DATA_MODE": "huggingface",
     "HF_MAX_RECORDS": "300",
     "AMLAAAK_MODEL_REPO": "thevel0per/AMLAAAK-Price-Predictor",
     "AMLAAAK_MODEL_REVISION": "89de24728daecdec3731e07475ab985c1efa87ad",

@@ -17,14 +17,17 @@ if __package__:
     from .service.inference import Inference
     from .service.huggingface import HuggingFaceDataProvider, UpstreamUnavailable
     from .service.valuation import valuate
+    from .service.prepared import PreparedDataProvider
 else:  # Vercel imports main from apps/api as project root.
     from service import schemas as s
     from service.analytics import Repository, city_aggregates, distributions
     from service.inference import Inference
     from service.huggingface import HuggingFaceDataProvider, UpstreamUnavailable
     from service.valuation import valuate
+    from service.prepared import PreparedDataProvider
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.getLogger('httpx').setLevel(logging.WARNING)  # Avoid logging signed private-file redirect URLs.
 logger = logging.getLogger('amlaaak.api')
 
 
@@ -33,12 +36,19 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
                   description='Read-only residential sale analytics. Illustrative data is explicitly labeled.',
                   responses={422: {'model': s.ErrorResponse}, 503: {'model': s.ErrorResponse}, 404: {'model': s.ErrorResponse}})
     try:
-        offline = (snapshot_path is not None or os.getenv('AMLAAAK_DATA_MODE') in ('illustrative', 'snapshot')
-                   or (os.getenv('AMLAAAK_SNAPSHOT') and os.getenv('AMLAAAK_DATA_MODE') != 'huggingface'))
-        repo = data_provider or (Repository(Path(snapshot_path or os.getenv('AMLAAAK_SNAPSHOT', Path(__file__).parent / 'assets' / 'sample.json')))
-                if offline else HuggingFaceDataProvider(max_records=os.getenv('HF_MAX_RECORDS', '300')))
+        mode = os.getenv('AMLAAAK_DATA_MODE', 'huggingface')
+        offline = (snapshot_path is not None or mode in ('illustrative', 'snapshot')
+                   or (os.getenv('AMLAAAK_SNAPSHOT') and mode not in ('huggingface', 'prepared')))
+        if data_provider is not None:
+            repo = data_provider
+        elif mode == 'prepared' and snapshot_path is None:
+            repo = PreparedDataProvider()
+        elif offline:
+            repo = Repository(Path(snapshot_path or os.getenv('AMLAAAK_SNAPSHOT', Path(__file__).parent / 'assets' / 'sample.json')))
+        else:
+            repo = HuggingFaceDataProvider(max_records=os.getenv('HF_MAX_RECORDS', '300'))
     except Exception:
-        logger.exception('snapshot_load_failed')
+        logger.exception('data_provider_initialization_failed')
         repo = None
     inference = Inference(model_dir if model_dir is not None else os.getenv('AMLAAAK_MODEL_DIR'))
     app.state.repository, app.state.inference = repo, inference
@@ -77,17 +87,19 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     def repository():
         if repo is None:
-            raise HTTPException(503, 'Dataset unavailable; verify the prepared snapshot configuration')
+            raise HTTPException(503, 'Dataset unavailable; verify backend provider configuration and credentials')
         return repo
 
     F = Annotated[s.Filters, Query()]
 
     @app.get('/api/v1/health', response_model=s.Health)
     def health():
-        remote = isinstance(repo, HuggingFaceDataProvider)
+        remote = isinstance(repo, (HuggingFaceDataProvider, PreparedDataProvider))
         ready = repo.has_population if remote else repo is not None
         return s.Health(status='ok' if ready else 'degraded', dataset_ready=ready, model_available=inference.status.available,
-                        provider='huggingface' if remote else 'snapshot', upstream_checked=remote and repo.checked)
+                        provider='prepared' if isinstance(repo, PreparedDataProvider) or repo is None and mode=='prepared'
+                        else 'huggingface' if remote or repo is None and mode=='huggingface' else 'snapshot',
+                        upstream_checked=remote and repo.checked)
 
     @app.get('/api/v1/model/status', response_model=s.ModelStatus)
     def model_status():
@@ -95,6 +107,10 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     @app.get('/api/v1/dashboard/summary', response_model=s.Summary)
     def summary(filters: F, store=Depends(repository)):
+        if isinstance(store, PreparedDataProvider):
+            prepared = store.summary(filters, inference.status)
+            if prepared is not None:
+                return prepared
         store = store.population(filters)
         rows = store.select(filters)
         return s.Summary(count=len(rows), median_price=median(p.price_value for p in rows) if rows else None,
@@ -105,6 +121,14 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     @app.get('/api/v1/analytics/cities', response_model=list[s.City])
     def cities(filters: F, response: Response, store=Depends(repository)):
+        if isinstance(store, PreparedDataProvider):
+            prepared = store.cities(filters)
+            if prepared is not None:
+                provenance=store.provenance(sum(c.count for c in prepared))
+                response.headers['X-Dataset-Revision']=provenance.revision
+                response.headers['X-Records-Examined']='0'
+                response.headers['X-Coverage-Exhaustive']='true'
+                return prepared
         store = store.population(filters)
         rows=store.select(filters)
         provenance=store.provenance_for(rows)
@@ -115,12 +139,20 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     @app.get('/api/v1/analytics/distributions', response_model=s.Distributions)
     def distribution(filters: F, store=Depends(repository)):
+        if isinstance(store, PreparedDataProvider):
+            prepared = store.distribution(filters)
+            if prepared is not None:
+                return prepared
         store = store.population(filters)
         rows = store.select(filters)
         return distributions(rows).model_copy(update={'coverage': store.provenance_for(rows).coverage})
 
     @app.get('/api/v1/properties', response_model=s.PropertyPage)
     def properties(filters: Annotated[s.PropertyFilters, Query()], store=Depends(repository)):
+        if isinstance(store, PreparedDataProvider):
+            prepared = store.page(filters)
+            if prepared is not None:
+                return prepared
         store = store.population(filters)
         page, page_size = filters.page, filters.page_size
         rows = sorted(store.select(filters), key=lambda p: (getattr(p, filters.sort), p.id), reverse=filters.order == 'desc')
@@ -130,7 +162,7 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     @app.get('/api/v1/properties/{property_id}', response_model=s.Property)
     def property_detail(property_id: str, store=Depends(repository)):
-        result = store.find(property_id) if isinstance(store, HuggingFaceDataProvider) else next((p for p in store.rows if p.id == property_id), None)
+        result = store.find(property_id) if isinstance(store, (HuggingFaceDataProvider, PreparedDataProvider)) else next((p for p in store.rows if p.id == property_id), None)
         if result is None:
             raise HTTPException(404, 'Property not found')
         return result
@@ -141,6 +173,8 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
 
     @app.get('/api/v1/data/facets', response_model=s.Facets)
     def facets(city: str | None = Query(default=None, max_length=80), store=Depends(repository)):
+        if isinstance(store, PreparedDataProvider):
+            return store.facets(city)
         filters = s.Filters(city=city)
         population = store.population(filters)
         rows = population.select(filters)
