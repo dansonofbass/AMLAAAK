@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const maxDuration = 60;
 const allowed = new Set([
   "health",
   "model/status",
@@ -69,7 +70,7 @@ async function proxy(
         headers,
         cache: "no-store",
         redirect: "error",
-        signal: AbortSignal.timeout(28000),
+        signal: AbortSignal.timeout(55000),
       },
     );
     if (!response.headers.get("content-type")?.includes("application/json"))

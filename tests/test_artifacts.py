@@ -30,3 +30,22 @@ def test_pinned_manifest_and_file_integrity(monkeypatch,tmp_path):
     assert artifacts.provision_model()==str(tmp_path)
     assert (tmp_path/'model.joblib').read_bytes()==model
     # This tests download verification only. Actual sklearn inference has separate tests.
+
+
+@pytest.mark.parametrize('corrupted', ['manifest.json', 'metadata.json', 'model.joblib'])
+def test_remote_corruption_is_rejected(monkeypatch, tmp_path, corrupted):
+    files = {'metadata.json': b'{}', 'model.joblib': b'not-executed'}
+    files['manifest.json'] = json.dumps({
+        'kind': 'divar', 'model_sha256': hashlib.sha256(files['model.joblib']).hexdigest(),
+        'metadata_sha256': hashlib.sha256(files['metadata.json']).hexdigest(),
+    }).encode()
+    monkeypatch.setenv('AMLAAAK_MODEL_REPO', 'test-owner/test-repo')
+    monkeypatch.setenv('AMLAAAK_MODEL_REVISION', 'a' * 40)
+    monkeypatch.setenv('AMLAAAK_MODEL_MANIFEST_SHA256', hashlib.sha256(files['manifest.json']).hexdigest())
+    files[corrupted] += b'corruption'
+    client = httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, content=files[request.url.path.rsplit('/', 1)[1]])))
+    monkeypatch.setattr(artifacts.httpx, 'Client', lambda **kwargs: client)
+    monkeypatch.setattr(artifacts.tempfile, 'mkdtemp', lambda **kwargs: str(tmp_path))
+    with pytest.raises(ValueError, match='integrity'):
+        artifacts.provision_model()

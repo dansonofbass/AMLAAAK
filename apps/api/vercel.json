@@ -1,6 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "env": {
+    "AMLAAAK_DATA_MODE": "huggingface",
+    "HF_MAX_RECORDS": "300",
+    "AMLAAAK_MODEL_REPO": "thevel0per/AMLAAAK-Price-Predictor",
+    "AMLAAAK_MODEL_REVISION": "89de24728daecdec3731e07475ab985c1efa87ad",
+    "AMLAAAK_MODEL_MANIFEST_SHA256": "a8d51e5f441b30a541b92ac33fb7838a39c0d8da1ce5b051cd3a67e55e98d3e5",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
   "functions": {
-    "main.py": { "maxDuration": 30, "excludeFiles": "{.venv/**,__pycache__/**,tests/**}" }
+    "main.py": { "maxDuration": 60, "excludeFiles": "{.venv/**,__pycache__/**,tests/**,assets/model/**,assets/*-model/**,**/*.joblib,**/*.csv,**/*.parquet}" }
   }
 }

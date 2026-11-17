@@ -2,7 +2,7 @@
 name = "amlaaak-api"
 version = "0.1.0"
 requires-python = ">=3.14,<3.15"
-dependencies = ["fastapi==0.163.1", "pydantic==2.14.3", "uvicorn==0.54.0", "httpx==0.28.1"]
+dependencies = ["fastapi==0.163.1", "pydantic==2.14.3", "uvicorn==0.54.0", "httpx==0.28.1", "numpy==2.4.3", "pandas==3.0.1", "scikit-learn==1.8.0", "joblib==1.5.3"]
 
 [tool.vercel]
 entrypoint = "main:app"
