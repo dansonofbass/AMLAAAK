@@ -2,6 +2,12 @@
 
 No push, hosting deployment, database provisioning, or remote deployment-setting changes were performed. The application remains two independent projects: apps/web and apps/api.
 
+For the new full-source preparation workflow, start with
+[the beginner Colab/Vercel guide](PREPARED_DATA_QUICKSTART.md). The actual notebook is
+`notebooks/prepare_divar_dataset.ipynb`. Prepared mode is opt-in only after a successful
+Colab run, approved private upload, and verified dataset commit/manifest hash. It does
+not replace or retrain the approved model. Detailed budgets are in [PREPARED_DATA.md](PREPARED_DATA.md).
+
 ## Local Windows PowerShell setup
 
 From the repository root, Python 3.14 and Node 24 are the verified versions:
@@ -54,7 +60,10 @@ For the original illustrative model, the existing `model_training.py` and `scrip
 | Web | API_BASE_URL | Backend origin, no /api/v1 suffix; server-side only |
 | Web | API_TOKEN | Optional backend bearer token, never NEXT_PUBLIC |
 | API | AMLAAAK_API_TOKEN | Matching bearer token; all endpoints except health are protected |
-| API | AMLAAAK_DATA_MODE | huggingface (default), illustrative, or snapshot |
+| API | AMLAAAK_DATA_MODE | huggingface (default), prepared (explicitly verified archive), illustrative, or snapshot |
+| API | AMLAAAK_PREPARED_DATA_REPO | Existing private dataset repository; required only in prepared mode |
+| API | AMLAAAK_PREPARED_DATA_REVISION | Actual immutable dataset commit printed after verified Colab upload |
+| API | AMLAAAK_PREPARED_DATA_MANIFEST_SHA256 | Actual trusted manifest SHA-256 printed after verified Colab upload |
 | API | HF_MAX_RECORDS | 300 default, clamped to 100-2,000; bounded query window |
 | API | HF_TOKEN | Optional server-only Hugging Face credential |
 | API | AMLAAAK_SNAPSHOT | Local prepared snapshot path for snapshot mode |
@@ -84,7 +93,7 @@ These are manual next steps; no push or deployment has been performed. The nativ
    | scikit-learn | 1.8.0 |
    | joblib | 1.5.3 |
 
-2. Enable Fluid compute in the project. The checked-in `vercel.json` supplies these public, non-secret runtime settings. Keep any dashboard overrides identical for Production and the Preview environments you intend to test:
+2. Enable Fluid compute in the project. The checked-in `vercel.json` supplies the public model pins and thread/row limits below. `AMLAAAK_DATA_MODE=huggingface` is the code default, deliberately absent from that file so you can later select prepared mode through backend environment variables. Configure the intended mode explicitly in the dashboard; keep the model pins identical for Production and Preview:
 
    ```dotenv
    AMLAAAK_DATA_MODE=huggingface
@@ -189,7 +198,7 @@ $env:AMLAAAK_RUN_LIVE_TESTS='1'
 .\.venv\Scripts\python -m pytest -q -m live
 ```
 
-From apps/web, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`. With an illustrative-mode API and both servers running, run `npm.cmd run test:e2e` (12 deterministic browser tests; two live tests skipped). Playwright uses installed Microsoft Edge headless. Install an official Playwright browser/update its channel if Edge is absent.
+From apps/web, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`. With an illustrative-mode API and both servers running, run `npm.cmd run test:e2e` (12 deterministic browser tests; two live tests and one synthetic prepared-provider test skipped). Playwright uses installed Microsoft Edge headless. Install an official Playwright browser/update its channel if Edge is absent.
 
 For a live-mode API with the real trained model:
 

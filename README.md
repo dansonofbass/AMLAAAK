@@ -229,3 +229,20 @@ All commits present at valuation-platform baseline f7f6f8c, including their auth
 ### Deploy the approved trained model
 
 The public, revision-pinned Random Forest model has been downloaded and verified through the production loader, and exercised through real valuation and frontend proxy integration. Both API dependency manifests now include the exact compatible ML versions. Follow [the Vercel setup](docs/DEPLOYMENT.md#two-vercel-projects-approved-real-model-deployment) for the two project roots, pinned artifact settings, server-side API_BASE_URL and hosted acceptance checks. No hosted deployment or hosted performance verification has been performed.
+
+## Prepare the complete historical archive in Colab
+
+The self-contained [prepare_divar_dataset.ipynb](notebooks/prepare_divar_dataset.ipynb)
+prepares all eligible sales from the pinned official source **in Google Colab**, without
+downloading the original dataset onto your laptop. It creates privacy-minimized Parquet,
+geographic/query indexes, exact statistics and a checksummed manifest. Upload to the
+existing private Hugging Face dataset requires explicit confirmation and remote read-back
+verification. The optional prepared FastAPI provider uses indexed chunks through the
+existing Next proxy; the dashboard design and approved model remain unchanged.
+
+Start with [the simple Colab → Vercel guide](docs/PREPARED_DATA_QUICKSTART.md).
+Full processing/upload/hosted prepared mode have **not** been executed by the agent.
+The current default provider remains the bounded Hugging Face prefix provider until
+you finish that workflow and explicitly change the backend mode. More searchable
+historical listings are not additional model training data. See [format and query
+budgets](docs/PREPARED_DATA.md), including the city requirement for combined filters.

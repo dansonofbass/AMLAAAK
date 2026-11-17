@@ -1724,6 +1724,17 @@
             },
             "type": "array",
             "title": "Limitations"
+          },
+          "source_processing_complete": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Processing Complete"
           }
         },
         "additionalProperties": false,

@@ -47,3 +47,12 @@ Up to eight candidates are returned, with deterministic ID tie-breaking and per-
 ## Known limits
 
 The working runtime currently cannot query an arbitrary whole-city population because /filter failed during verification. City/neighborhood options and summaries reflect the bounded window only. Prefix retrieval may be strongly biased; inflation, location granularity, duplicates and source outliers remain important. Broader coverage requires explicit offline preparation or a deliberately larger, still bounded remote strategy; no external database is required or proposed. The source card's column-count/period descriptions remain inconsistent with the viewer and observed rows. Asking prices are not completed-sale prices and currency units have not been independently established.
+
+## Prepared archive alternative
+
+The default prefix provider described below is preserved for rollback. After a full
+Colab preparation and approved upload, `AMLAAAK_DATA_MODE=prepared` selects the private,
+manifest-pinned indexed archive. It bypasses Dataset Server `/rows` entirely. No actual
+full-source run, private upload or hosted prepared deployment has been performed by
+the agent. Follow [the beginner guide](PREPARED_DATA_QUICKSTART.md) and
+[technical format/query limits](PREPARED_DATA.md). The approved model stays unchanged.

@@ -34,3 +34,16 @@ The Next.js UI uses shared filters, typed Zod responses, TanStack Query and Radi
 Map geometry includes original Natural Earth countries plus geoBoundaries IRN ADM1 province-level features. These are explicitly not municipal city boundaries. Approximate public city centers and the selected province outline coordinate with API city filters. Province hover/popups describe only represented mapped cities, never full-province totals. Geometry is lazy-loaded; source attribution/licensing and the metadata/feature-count discrepancy are retained. No private listing coordinates or paid map key are used.
 
 Production limitations remain: bounded historical coverage, failed upstream remote filtering during verification, unverified currency units, modest held-out model results, no calibrated uncertainty, sparse per-city evaluation, partial city-center coverage, unverified municipal boundaries, and untested hosted ML bundle/cold starts. For larger analyses, use explicit offline preparation or expand a bounded HF strategy with truthful coverage, not an unrequested database service.
+
+## Optional complete prepared archive
+
+The Colab-only preparation modules use pinned source CSV streaming (or direct
+Parquet batches), safe normalization, disk-backed deduplication and exact aggregate
+generation. A manually approved upload produces an immutable private HF dataset
+commit and trusted manifest hash. The `PreparedDataProvider` verifies those artifacts
+and uses precomputed global/city statistics, sorted page chunks, geographic partition
+indexes and bounded private-file caching. Runtime imports no preparation/Datasets/
+PyArrow dependencies. Existing API paths and Next server-side proxy remain; UI changes
+only clarify archive coverage. Model artifacts, training, version and inference stay
+separate and unchanged. See [PREPARED_DATA.md](PREPARED_DATA.md) for exact memory/query
+budgets and [the beginner rollout guide](PREPARED_DATA_QUICKSTART.md).

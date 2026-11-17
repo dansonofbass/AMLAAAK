@@ -37,3 +37,21 @@ New work is organized into descriptive local Conventional Commits; inspect git l
 ## Subsequent approved remote-model preparation
 
 The operator subsequently provided the approved public model repository, revision and manifest hash. Actual remote download, integrity checks, inference, valuation and frontend proxy integration now pass. Vercel runtime manifests include exact ML versions and pinned public artifact settings. This supersedes the earlier remote-provisioning limitation above; hosted deployment remains unverified. See DEPLOYMENT.md and the final section of VALIDATION.md for exact settings, measured local evidence and acceptance steps.
+## Subsequent complete-source preparation integration
+
+The actual self-contained `notebooks/prepare_divar_dataset.ipynb`, preparation/upload
+modules, private prepared-data provider, minimal coverage UI changes, and regression
+tests are implemented. Full source processing remains a user-run Colab operation;
+no source CSV was downloaded locally, no private dataset uploaded, no model retrained,
+and no push or deployment performed. Approved model `267eff7c36f3` is preserved.
+
+Current verification: 116 Python tests; 3 real network source/model checks; 12 frontend
+unit tests; 12 preserved offline browser tests; 1 synthetic prepared-provider browser
+test; typecheck/lint/build and pip dependency checks passed. The private adapter's
+external file boundary and upload transaction were mocked; hosted prepared mode has
+not been verified. Read-only hosted health/model checks still showed the original
+Hugging Face provider and approved trained model.
+
+Start with [the beginner guide](PREPARED_DATA_QUICKSTART.md). The provider's query,
+memory and filtering limits, source/license evidence, generated format and test scope
+are in [PREPARED_DATA.md](PREPARED_DATA.md). The old provider remains the rollback path.

@@ -51,3 +51,41 @@ The operator subsequently supplied `thevel0per/AMLAAAK-Price-Predictor` at immut
 - Linux CPython 3.14 binary dependency resolution: 25 wheels, 251,772,240 uncompressed bytes. This is not a hosted function build.
 
 Local provisioning took 9.487 seconds; first valuation 7.840 seconds. API working set after live browser checks was 196,136,960 bytes. These single Windows measurements are not hosted latency/memory guarantees. Hosted bundle size, cold starts, concurrency, platform protection and execution remain unverified. No model/dataset binaries were committed, no push/deployment occurred, and existing history was preserved. Exact setup and next steps are in DEPLOYMENT.md.
+
+## Prepared-data integration — 2026-11-18
+
+Implemented a self-contained Colab notebook, bounded streaming preparation,
+private manifest-pinned data adapter, indexed statistics/pagination and truthful
+frontend archive wording. The full original source was **not downloaded or processed**
+on the laptop, no Colab runtime was executed by the agent, no private dataset was
+uploaded, and no production mode was changed. Private-provider/network upload tests
+use mocks and synthetic records; their counts are not Divar dataset results.
+
+- Python: 116 passed, 3 opt-in network tests skipped by default.
+- Actual opt-in source/model network regression: 3 passed. Approved model version
+  remained `267eff7c36f3`, direct prediction `6076080000.0`; actual valuation returned
+  8 genuine prefix-provider comparables. This does not verify the private adapter live.
+- Frontend unit tests: 12 passed. Typecheck, lint and production build passed.
+- Prepared browser integration: 1 passed against synthetic 18-record preparation
+  output and a mocked private-file HTTP boundary, through the actual FastAPI/Next
+  proxy. Counts, city/neighborhood filters, pagination, details and comparables worked.
+- Existing offline browser regression: 12 passed; 3 opt-in browser tests skipped.
+- `pip check`: no broken requirements. Preparation-only packages remain outside the
+  Vercel runtime manifests; model package pins and approved artifact checks are preserved.
+
+Actual read-only source inventory checks verified `real_estate_ads.csv` at the pinned
+commit (780,721,338 bytes; LFS SHA256 documented in PREPARED_DATA.md), and source card
+license `odbl`. Hub tree and dataset-file inventories agreed. The notebook's corresponding
+inventory/license APIs were exercised without fetching that CSV. Code cells compile;
+embedded preparation and the unapproved-upload stop executed with synthetic input.
+
+Read-only hosted baseline checks returned HTTP 200 from backend health/model status
+and frontend-proxied health. They showed provider `huggingface`, model available,
+version `267eff7c36f3`; lazy dataset readiness was false before retrieval. These checks
+describe the existing deployment, **not a new prepared-data production connection**.
+
+Remaining manual acceptance: successful full Colab EOF/count/hash validation, explicit
+upload approval, actual private-repository read-back, verified dataset commit/hash,
+backend read-token configuration, Preview function-size/memory/cold-start checks,
+and hosted prepared-mode/browser acceptance. Exact steps and rollback are in
+PREPARED_DATA_QUICKSTART.md. No push or deployment was performed.

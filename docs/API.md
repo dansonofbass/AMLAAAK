@@ -44,3 +44,19 @@ Valuation response has model, prediction (nullable), provenance, coverage, compa
 Property records may include neighborhood_slug, created_at_month, source_identity, source_row_index and source_revision. Legacy fixture responses omit unknown context to preserve compatibility. HF source identities refer to historical dataset rows, not active-ad URLs. No descriptions, private coordinates or advertiser contacts are exposed. No confidence interval is claimed.
 
 Errors use {"error":{"code":"...","message":"..."}} with appropriate status: 401 unauthorized, 404 missing, 422 validation, 503 upstream/model unavailability, or 500 unexpected failure. Normal responses use Cache-Control: no-store and X-Request-ID. Logs include method/path/status/duration, not user specifications or query values. Every price/metric uses original price_value units; currency is unverified. See DATA_PROVIDER.md for exact population and cache semantics, and openapi.json for the generated schemas.
+
+## Prepared provider
+
+All existing routes are preserved. With `AMLAAAK_DATA_MODE=prepared`, summary, city
+statistics, distributions and facets use verified precomputed archive aggregates;
+property pagination uses sorted global/city indexes. Combined numeric/neighborhood/
+text queries require a city, and city partition budgets fail explicitly with 503.
+`provenance.provider` is `prepared`. `coverage.source_processing_complete` is optional
+and distinguishes verified source processing from archive-query exhaustiveness.
+`provenance.input_rows` is original source rows processed; `eligible_rows` is all
+available prepared sales; `coverage.eligible_records` is the matching query count.
+Zero `records_examined` on precomputed statistics means no listings were loaded in
+this request, not an empty archive. Health reports prepared mode and lazy readiness.
+Private-data failures never switch to the old prefix/illustrative providers. The
+valuation endpoint preserves approved model inference and labels unavailable
+comparables separately. See [PREPARED_DATA.md](PREPARED_DATA.md).
