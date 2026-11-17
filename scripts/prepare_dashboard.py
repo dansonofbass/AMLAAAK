@@ -22,8 +22,8 @@ def export(source, destination, kind, revision, model_source=None, model_destina
     if digest == file_hash(fixture) and kind != 'illustrative':
         raise ValueError('The repository fixture must be labeled illustrative')
     raw = load_data(source)
-    normalized = prepare(raw)
-    if kind != 'illustrative' and normalized.equals(prepare(load_data(fixture))):
+    normalized = prepare(raw, include_context=True)
+    if kind != 'illustrative' and normalized[FEATURES + ['price_value']].equals(prepare(load_data(fixture))):
         raise ValueError('The repository fixture must be labeled illustrative, including SQLite copies')
     if len(normalized) > 50000:
         raise ValueError('Serving snapshot is limited to 50,000 records; prepare a documented subset or database adapter')

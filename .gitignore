@@ -26,3 +26,7 @@ docs/screenshots/
 
 next-env.d.ts
 amlak dashboard.png
+
+apps/api/assets/*-model/
+node_modules.recovery-*/
+.dependency-recovery/
