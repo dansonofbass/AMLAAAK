@@ -10,3 +10,19 @@ data/
 *.parquet
 *.csv
 !sample database.csv
+
+node_modules/
+.next/
+.npm-cache/
+.vercel/
+.env*
+!.env.example
+playwright-report/
+test-results/
+*.tsbuildinfo
+apps/api/assets/analytics.json
+apps/api/assets/model/
+docs/screenshots/
+
+next-env.d.ts
+amlak dashboard.png
