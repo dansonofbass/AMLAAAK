@@ -8,6 +8,8 @@ data/
 *.sqlite*
 *.joblib
 *.parquet
+*.json.gz
+.ipynb_checkpoints/
 *.csv
 !sample database.csv
 
