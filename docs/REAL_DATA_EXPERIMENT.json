@@ -1,0 +1,94 @@
+{
+  "source_sha256": "778e86a86fbf7ca68e59ec4f495971aa503690d64dd705ad7f4152ef3c56aa6b",
+  "source_revision": "e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85",
+  "input_rows": 862,
+  "valid_distinct_sale_rows": 857,
+  "train_rows": 414,
+  "validation_rows": 323,
+  "test_rows": 120,
+  "seed": 42,
+  "metrics": {
+    "random_forest": {
+      "mae": 3139678931.812667,
+      "rmse": 7929988797.027716,
+      "r2": 0.16643248632102248
+    },
+    "median_baseline": {
+      "mae": 4291034063.7916665,
+      "rmse": 9167436225.773888,
+      "r2": -0.11401599891378522
+    }
+  },
+  "validation_metrics": {
+    "mae": 3532432102.5421824,
+    "rmse": 14387669949.361443,
+    "r2": 0.6248698849584094
+  },
+  "selected_min_samples_leaf": 1,
+  "split_method": "chronological_whole_months_approx_60_20_20",
+  "periods": {
+    "train": [
+      "2024-01",
+      "2024-08"
+    ],
+    "validation": [
+      "2024-09",
+      "2024-11"
+    ],
+    "test": [
+      "2024-12",
+      "2025-02"
+    ]
+  },
+  "near_duplicate_rows_removed": 5,
+  "city_metrics_min_test_rows": 30,
+  "city_metrics": {},
+  "versions": {
+    "python": "3.14.7",
+    "numpy": "2.4.3",
+    "pandas": "3.0.1",
+    "scikit-learn": "1.8.0",
+    "joblib": "1.5.3"
+  },
+  "limitations": [
+    "Bounded historical source subset, not representative market validation.",
+    "Near-duplicate specification grouping can merge different homes.",
+    "Neighborhood is used for duplicate grouping/comparables, not a model feature; no ablation improvement claimed.",
+    "No confidence interval; asking prices are not completed-sale prices."
+  ],
+  "source_provenance": {
+    "kind": "divar",
+    "source_url": "https://huggingface.co/datasets/divarofficial/real_estate_ads",
+    "source_sha256": "",
+    "revision": "e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85",
+    "input_rows": 2000,
+    "eligible_rows": 862,
+    "units": "Original price_value units (currency unverified)",
+    "note": "Genuine Divar historical records retrieved from Hugging Face. Bounded coverage; not a live housing feed.",
+    "provider": "huggingface",
+    "coverage": {
+      "records_examined": 2000,
+      "normalized_records": 862,
+      "eligible_records": 862,
+      "upstream_matching_rows": 1000000,
+      "exhaustive": false,
+      "bounded": true,
+      "sampled": false,
+      "statistics_full_population": false,
+      "remote_filter_supported": false,
+      "remote_sort_supported": false,
+      "sorting_scope": "retrieved_records",
+      "method": "/rows_prefix",
+      "limitations": [
+        "Historical asking prices, not active advertisements or completed sales.",
+        "Sorting and statistical summaries apply only to records actually retrieved.",
+        "Dataset Server does not provide a transactional market database.",
+        "Remote filtering unavailable (Hugging Face request timed out or connection failed); filters run within an unfiltered source prefix.",
+        "Examined 2000 of 1000000 upstream rows. No claim of complete filtered-market coverage."
+      ]
+    },
+    "fetched_at": "2026-11-17T00:59:20.496782+00:00",
+    "period_start": "2024-01",
+    "period_end": "2025-02"
+  }
+}

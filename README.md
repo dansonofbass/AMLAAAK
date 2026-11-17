@@ -1,24 +1,24 @@
 # AMLAAAK — Real Estate Price Prediction
 
-AMLAAAK combines a reproducible Python price-modeling pipeline with a Next.js/FastAPI real-estate analytics workspace. It validates locally supplied Divar-format data, evaluates a RandomForestRegressor against a median-price baseline, and serves privacy-conscious analytics through typed API contracts. A configured trusted model artifact enables actual inference. Nothing has been publicly deployed as part of this implementation.
+AMLAAAK is an Iranian real-estate research platform with direct Hugging Face historical-data retrieval, explainable comparable-property discovery, and separately trained Random Forest valuation. The Next.js workspace calls a typed FastAPI backend through a server-only proxy. It uses no managed database, PostgreSQL, MongoDB, paid map API, or generative-AI service. Nothing was pushed or deployed during this implementation.
 
 ## Status and scope
 
-This is a portfolio research prototype, not a production valuation system. The included **10 illustrative records are not verified Divar observations**. Eight are sales and two are rentals; training excludes the rentals. The dashboard's bundled snapshot contains those eight eligible sales and labels them prominently. No full-dataset experiment or real-world accuracy claim is made. By default, predictions and model scores remain unavailable until a trusted model bundle is explicitly configured.
+This is a portfolio research prototype, not a production valuation system. The included **10 illustrative records are not verified Divar observations**. Eight are sales and two are rentals; training excludes the rentals. The bundled snapshot remains an explicit offline test mode. Live runtime prefers genuine Hugging Face records with strict retrieval limits. A bounded real-data experiment completed, described below; it is not a full-market validation. Inference remains unavailable unless a trusted artifact is explicitly configured.
 
 ## Analytics workspace
 
-The dark analytics interface adapts the supplied `amlak dashboard.png`: a geographic canvas, floating/resizable chart cards, compact KPIs, cyan/violet accents, and a separate contextual insights rail. On mobile the charts stack and the rail opens on demand. The rail contains rule-based numerical observations, not a simulated AI assistant.
+The dark analytics interface adapts the supplied `amlak dashboard.png`: a geographic canvas, floating/resizable chart cards, compact KPIs, cyan/violet accents, and a separate contextual insights rail. On mobile the charts stack and the rail opens on demand. The rail contains rule-based numerical observations, not a simulated AI assistant. Global typography uses next/font/google Roboto with Vazirmatn for Persian fallback. Accessible searchable dark pickers replace native dropdowns. An original SVG logo/favicon and licensed province outlines extend the visual system.
 
 | Page | Implemented behavior |
 | --- | --- |
 | Overview `/` | Verified counts/medians, interactive Iran city map, price/area/year charts, type composition and amenities |
 | Market analytics `/analytics` | Shared city/type/range/search filters, chart-driven selection and reset |
 | Properties `/properties` | Server-side search, sorting, pagination and accessible detail dialog; no private text or exact locations |
-| Price prediction `/predict` | Validated feature form, real FastAPI/sklearn inference when configured, explicit demo/unavailable states |
+| Price prediction `/predict` | City-dependent neighborhood form, real model estimate when configured, ranked historical comparables, separate comparable median and source coverage |
 | Model performance `/model` | Artifact-backed forest/baseline metrics, source/split/version metadata; no invented residuals |
 
-All successful UI data flows through typed FastAPI/Pydantic responses, validated by Zod at the frontend boundary. The map uses bundled public-domain Natural Earth boundaries and approximate city centers; no map key or external tiles are needed. Unmapped cities remain in tables and aggregates.
+All successful UI data flows through typed FastAPI/Pydantic responses, validated by Zod at the frontend boundary. The map combines public-domain Natural Earth country outlines, licensed geoBoundaries/OSM province geometry, and approximate public city centers. Municipal city limits were not verified. See [map attribution](apps/web/public/ATTRIBUTION.md) for CC BY 4.0 and ODbL attribution. No map key or external tiles are needed. Unmapped cities remain in tables and aggregates.
 
 For local development, install Python 3.14 and Node 24, then run from the repository root:
 
@@ -37,9 +37,42 @@ $env:API_BASE_URL='http://127.0.0.1:8000'
 npm.cmd run dev -- --port 3100
 ```
 
-Open `http://127.0.0.1:3100`. This starts illustrative analytics with honest unavailable model status. The [deployment guide](docs/DEPLOYMENT.md) includes the exact optional model-training/export commands, environment variables, two independent Vercel projects, and Render/Docker fallback. It also explains how to prepare a permitted real-data snapshot. No training occurs during build or request handling, and no writable persistent SQLite database is used by the hosted API.
+Open `http://127.0.0.1:3100`. This starts genuine bounded Hugging Face analytics; inference is honestly unavailable until configured. Set AMLAAAK_DATA_MODE=illustrative in the API terminal for offline fixture analytics. The [deployment guide](docs/DEPLOYMENT.md) includes the exact optional model-training/export commands, environment variables, two independent Vercel projects, and Render/Docker fallback. It also explains how to prepare a permitted real-data snapshot. No training occurs during build or request handling, and no writable persistent SQLite database is used by the hosted API.
 
 Further documentation: [architecture](docs/ARCHITECTURE.md), [API routes and schemas](docs/API.md), [deployment and screenshots](docs/DEPLOYMENT.md), [verified validation results](docs/VALIDATION.md). Interactive OpenAPI is available at the backend's `/docs`.
+
+## Live historical data and comparable discovery
+
+Official source: https://huggingface.co/datasets/divarofficial/real_estate_ads. Runtime uses the Dataset Server's `/splits`, `/rows`, and capability-probed `/filter`; `/parquet` was inspected for discovery only. The Hub metadata API verified revision `e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85` and the ODbL designation.
+
+**Remote `/filter` and `orderby` requests failed during verification** with upstream authentication-check errors/timeouts. The provider can use filtering when it recovers, but currently falls back to a bounded unfiltered source prefix, then normalizes and filters locally. Default runtime examines at most **300 of 1,000,000 source rows**; it does not silently call those records the complete market. Cache: 8 populations per worker, 120-second TTL; pages have explicit timeouts/retries and revision checks. No full download occurs at startup or build time. There is no automatic fallback to illustrative records or invented predictions.
+
+Coverage accompanies summaries, property pages, distributions, facets and valuation: examined/normalized/eligible counts, upstream count, source revision, exhaustive/bounded flags, method, supported remote operations, source period and limitations. City responses include coverage metadata and headers. Counts, sorting and charts describe the retrieved records only. City/neighborhood options also reflect that limited population. Currency remains unverified; every price retains original `price_value` units.
+
+`POST /api/v1/valuation` returns an optional ML estimate plus up to eight comparables from records actually retrieved. Matching requires the same city and residential sale category, then weights area, bedrooms, construction year, floor, known amenities, neighborhood and relative advertisement period. Missing features are not silently treated as matching. Scores are explainable heuristics, not probabilities. The displayed comparable median remains separate from the model estimate. Records include historical month, neighborhood and a revision/row-based source identity, not an invented active-ad URL, photograph or address.
+
+If the model is unavailable, comparable search still works. If Hugging Face is unavailable, an available model can still return its estimate with an explicit zero-coverage comparable-search failure. Details: [data-provider contract](docs/DATA_PROVIDER.md) and [API](docs/API.md).
+
+## Verified bounded real-data experiment
+
+An explicit acquisition examined 2,000 source rows, yielding 862 eligible historical sales. Conservative specification grouping removed five near-duplicates, leaving 857 records. Whole-month temporal partitions used 414 training records (2024-01 through 2024-08), 323 validation records (2024-09 through 2024-11), and 120 test records (2024-12 through 2025-02). Validation selected `min_samples_leaf` from 1 and 3; preprocessing was fitted only on training rows. The test partition was held out throughout selection.
+
+| Estimator | Test MAE (source units) | Test RMSE (source units) | Test R2 |
+| --- | ---: | ---: | ---: |
+| Random Forest | 3,139,678,931.81 | 7,929,988,797.03 | 0.166432 |
+| Training-median baseline | 4,291,034,063.79 | 9,167,436,225.77 | -0.114016 |
+
+These are genuine executed results from a bounded, non-random source prefix, not production accuracy or full-market coverage. Per-city evaluation requires at least 30 test records; no city met that threshold. Neighborhood was not added to the estimator without an out-of-sample ablation; it is used for comparable ranking and duplicate grouping. Exact versions, source hash and limitations are in [the experiment record](docs/REAL_DATA_EXPERIMENT.json).
+
+Explicit acquisition and training (fresh output paths required):
+
+```powershell
+.\.venv\Scripts\python scripts/acquire_divar.py --output data/divar-live-2000.csv --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85 --max-records 2000
+.\.venv\Scripts\python -m amlaaak.real_training --data data/divar-live-2000.csv --output-dir artifacts/divar-temporal --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85
+.\.venv\Scripts\python scripts/prepare_dashboard.py --source data/divar-live-2000.csv --output data/divar-dashboard.json --kind divar --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85 --model-source artifacts/divar-temporal --model-output apps/api/assets/divar-model
+```
+
+Then set `AMLAAAK_MODEL_DIR` to that exported directory before starting FastAPI. No acquisition/training runs inside HTTP handlers. Source/model artifacts remain ignored and must be explicitly provisioned for deployment. Original fixture training commands below remain supported.
 
 ## Data source and licensing
 
@@ -163,7 +196,7 @@ Verified illustrative smoke run on Python 3.14.7: 10 input rows, 8 valid distinc
 | Random forest | 174,500,000 | 220,319,086.78 | 0.603751 |
 | Training-median baseline | 800,000,000 | 873,212,459.83 | -5.224490 |
 
-These numbers verify execution only and cannot demonstrate generalization. The CSV and SQLite smoke routes produce the same metrics. Automated tests verify repeated-run reproducibility and model reload. No full Divar dataset has been downloaded or evaluated.
+These numbers verify execution only and cannot demonstrate generalization. The CSV and SQLite smoke routes produce the same metrics. Automated tests verify repeated-run reproducibility and model reload. The full Divar dataset has not been downloaded or evaluated. The separately documented genuine-data experiment uses only an explicitly acquired bounded prefix.
 
 ## Model outputs
 
@@ -175,13 +208,13 @@ Each output directory contains:
 
 For direct programmatic inference on labeled records, call `prepare`, select `FEATURES`, then call the loaded pipeline's `predict`. The saved pipeline expects normalized feature frames; it does not include raw parsing. The FastAPI prediction route provides a validated unlabeled-feature contract and constructs that frame for a configured bundle. See [API documentation](docs/API.md). Only load trusted joblib files and use matching package versions. The saved forest remains fitted on the training partition used for evaluation; it is not subsequently refitted on all rows.
 
-For serving, `scripts/prepare_dashboard.py` exports an existing model with its metadata and a checksummed manifest; it does not train or fabricate one. Generated bundles and real-data snapshots are ignored. The checked-in sample snapshot is derived solely from the illustrative fixture. Snapshot export is bounded to 50,000 eligible records; larger deployments require a database-backed adapter rather than loading the full source into a browser.
+For serving, `scripts/prepare_dashboard.py` exports an existing model with its metadata and a checksummed manifest; it does not train or fabricate one. Generated bundles and real-data snapshots are ignored. The checked-in sample snapshot is derived solely from the illustrative fixture. Snapshot export is bounded to 50,000 eligible records; larger analyses require explicit offline preparation or a deliberately expanded remote retrieval strategy with truthful coverage, never a full browser CSV download.
 
 ## Application checks
 
 From the repository root after installing `requirements-api-dev.txt`, run `python -m pytest -q` through the virtual environment. In `apps/web`, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`, and, with both servers running, `npm.cmd run test:e2e`.
 
-Verified on Windows/Python 3.14.7/Node 24.18.0: **52 Python tests, 9 frontend tests, and 8 Playwright tests passed**; typecheck, lint and production build passed. The browser run exercised actual illustrative-model inference. Screenshots are generated in `apps/web/test-results/`; capture/review instructions and verification limits are in [deployment](docs/DEPLOYMENT.md) and [validation](docs/VALIDATION.md). Hosted deployment and Docker execution have not been verified.
+Verified on Windows/Python 3.14.7/Node 24.18.0: **72 deterministic Python tests, 11 frontend tests, 12 offline Playwright tests, 2 genuine live Python integration tests, and 2 genuine live Playwright integration tests passed**; typecheck, lint and production build passed. Browser runs exercised both illustrative and genuine-data model inference, actual Hugging Face responses, neighborhood selection, comparables, opened dropdowns without hover, and province selection. Screenshots are generated in `apps/web/test-results/`; capture/review instructions and verification limits are in [deployment](docs/DEPLOYMENT.md) and [validation](docs/VALIDATION.md). Hosted deployment and Docker execution have not been verified.
 
 ## Limitations, roadmap, and responsible use
 
@@ -191,4 +224,4 @@ Next steps are a documented full-data experiment, temporal/geographic validation
 
 ## Development history
 
-The six commits present at the start of the dashboard work, including their authors/dates, are preserved. New work uses Conventional Commits without rewriting or force-pushing. See [the original audit](docs/AUDIT.md) for the earlier ML cleanup and [validation](docs/VALIDATION.md) for this application's scope and checks. No push or deployment was performed.
+All commits present at valuation-platform baseline f7f6f8c, including their authors and dates, are preserved. New work uses Conventional Commits without rewriting or force-pushing. See [the original audit](docs/AUDIT.md) for the earlier ML cleanup and [validation](docs/VALIDATION.md) for this application's scope and checks. No push or deployment was performed.

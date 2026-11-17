@@ -125,6 +125,59 @@
             }
           },
           {
+            "name": "neighborhood",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Neighborhood"
+            }
+          },
+          {
+            "name": "bedrooms_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Min"
+            }
+          },
+          {
+            "name": "bedrooms_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Max"
+            }
+          },
+          {
             "name": "property_type",
             "in": "query",
             "required": false,
@@ -324,6 +377,59 @@
                 }
               ],
               "title": "City"
+            }
+          },
+          {
+            "name": "neighborhood",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Neighborhood"
+            }
+          },
+          {
+            "name": "bedrooms_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Min"
+            }
+          },
+          {
+            "name": "bedrooms_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Max"
             }
           },
           {
@@ -533,6 +639,59 @@
             }
           },
           {
+            "name": "neighborhood",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Neighborhood"
+            }
+          },
+          {
+            "name": "bedrooms_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Min"
+            }
+          },
+          {
+            "name": "bedrooms_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Max"
+            }
+          },
+          {
             "name": "property_type",
             "in": "query",
             "required": false,
@@ -732,6 +891,59 @@
                 }
               ],
               "title": "City"
+            }
+          },
+          {
+            "name": "neighborhood",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Neighborhood"
+            }
+          },
+          {
+            "name": "bedrooms_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Min"
+            }
+          },
+          {
+            "name": "bedrooms_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bedrooms Max"
             }
           },
           {
@@ -1074,6 +1286,131 @@
         }
       }
     },
+    "/api/v1/data/facets": {
+      "get": {
+        "summary": "Facets",
+        "operationId": "facets_api_v1_data_facets_get",
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Facets"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/valuation": {
+      "post": {
+        "summary": "Valuation",
+        "operationId": "valuation_api_v1_valuation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Valuation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/predict": {
       "post": {
         "summary": "Predict",
@@ -1239,6 +1576,27 @@
               }
             ],
             "title": "Longitude"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
           }
         },
         "additionalProperties": false,
@@ -1252,6 +1610,34 @@
           "longitude"
         ],
         "title": "City"
+      },
+      "Comparable": {
+        "properties": {
+          "property": {
+            "$ref": "#/components/schemas/Property"
+          },
+          "similarity_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Similarity Score"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "property",
+          "similarity_score",
+          "reasons"
+        ],
+        "title": "Comparable"
       },
       "Count": {
         "properties": {
@@ -1271,6 +1657,88 @@
           "count"
         ],
         "title": "Count"
+      },
+      "Coverage": {
+        "properties": {
+          "records_examined": {
+            "type": "integer",
+            "title": "Records Examined"
+          },
+          "normalized_records": {
+            "type": "integer",
+            "title": "Normalized Records"
+          },
+          "eligible_records": {
+            "type": "integer",
+            "title": "Eligible Records"
+          },
+          "upstream_matching_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upstream Matching Rows"
+          },
+          "exhaustive": {
+            "type": "boolean",
+            "title": "Exhaustive"
+          },
+          "bounded": {
+            "type": "boolean",
+            "title": "Bounded"
+          },
+          "sampled": {
+            "type": "boolean",
+            "title": "Sampled",
+            "default": false
+          },
+          "statistics_full_population": {
+            "type": "boolean",
+            "title": "Statistics Full Population"
+          },
+          "remote_filter_supported": {
+            "type": "boolean",
+            "title": "Remote Filter Supported"
+          },
+          "remote_sort_supported": {
+            "type": "boolean",
+            "title": "Remote Sort Supported",
+            "default": false
+          },
+          "sorting_scope": {
+            "type": "string",
+            "title": "Sorting Scope",
+            "default": "retrieved_records"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "records_examined",
+          "normalized_records",
+          "eligible_records",
+          "exhaustive",
+          "bounded",
+          "statistics_full_population",
+          "remote_filter_supported",
+          "method"
+        ],
+        "title": "Coverage"
       },
       "Distributions": {
         "properties": {
@@ -1329,6 +1797,16 @@
           "missing_years": {
             "type": "integer",
             "title": "Missing Years"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -1376,6 +1854,39 @@
         ],
         "title": "ErrorResponse"
       },
+      "Facets": {
+        "properties": {
+          "cities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cities"
+          },
+          "neighborhoods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Neighborhoods"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cities",
+          "neighborhoods",
+          "provenance",
+          "coverage"
+        ],
+        "title": "Facets"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -1393,6 +1904,16 @@
           "model_available": {
             "type": "boolean",
             "title": "Model Available"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "snapshot"
+          },
+          "upstream_checked": {
+            "type": "boolean",
+            "title": "Upstream Checked",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -1518,6 +2039,54 @@
             "type": "boolean",
             "title": "Residuals Available",
             "default": false
+          },
+          "validation_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Rows"
+          },
+          "validation_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Scores"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "split_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Split Method"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
+          },
+          "city_metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "City Metrics"
           }
         },
         "additionalProperties": false,
@@ -1561,6 +2130,17 @@
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
           }
         },
         "additionalProperties": false,
@@ -1616,6 +2196,18 @@
             "minLength": 1,
             "pattern": "^[a-z0-9-]+$",
             "title": "City Slug"
+          },
+          "neighborhood_slug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neighborhood Slug"
           },
           "cat3_slug": {
             "type": "string",
@@ -1809,6 +2401,61 @@
               }
             ],
             "title": "Has Warehouse"
+          },
+          "neighborhood_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neighborhood Slug"
+          },
+          "created_at_month": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At Month"
+          },
+          "source_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Identity"
+          },
+          "source_row_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Row Index"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Revision"
           }
         },
         "additionalProperties": false,
@@ -1851,6 +2498,26 @@
           "page_size": {
             "type": "integer",
             "title": "Page Size"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Provenance"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -1878,7 +2545,14 @@
             "title": "Source Url"
           },
           "source_sha256": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Source Sha256"
           },
           "revision": {
@@ -1901,6 +2575,54 @@
           "note": {
             "type": "string",
             "title": "Note"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "snapshot"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
           }
         },
         "additionalProperties": false,
@@ -2010,6 +2732,95 @@
           "model"
         ],
         "title": "Summary"
+      },
+      "Valuation": {
+        "properties": {
+          "model": {
+            "$ref": "#/components/schemas/ModelStatus"
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Prediction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "comparables": {
+            "items": {
+              "$ref": "#/components/schemas/Comparable"
+            },
+            "type": "array",
+            "title": "Comparables"
+          },
+          "comparable_median_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Median Price"
+          },
+          "comparable_median_price_per_sqm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparable Median Price Per Sqm"
+          },
+          "prediction_vs_comparable_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Vs Comparable Percent"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": "Best matching properties among retrieved historical records."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "prediction",
+          "provenance",
+          "coverage",
+          "comparables",
+          "comparable_median_price",
+          "comparable_median_price_per_sqm",
+          "prediction_vs_comparable_percent",
+          "limitations"
+        ],
+        "title": "Valuation"
       }
     }
   }

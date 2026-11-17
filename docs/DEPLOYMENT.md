@@ -1,14 +1,16 @@
-# Deployment and local operation
+# Local operation and deployment
 
-No deployment, account changes, remote configuration changes or Git pushes were performed for this implementation. The following are operator instructions, not a claim that the app is publicly hosted.
+No push, hosting deployment, database provisioning, or remote deployment-setting changes were performed. The application remains two independent projects: apps/web and apps/api.
 
-## Local development (Windows PowerShell)
+## Local Windows PowerShell setup
 
-From the repository root, with Python 3.14 and Node 24:
+From the repository root, Python 3.14 and Node 24 are the verified versions:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements-api-dev.txt
+$env:AMLAAAK_DATA_MODE='huggingface'
+$env:HF_MAX_RECORDS='300'
 .\.venv\Scripts\python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -21,98 +23,108 @@ $env:API_BASE_URL='http://127.0.0.1:8000'
 npm.cmd run dev -- --port 3100
 ```
 
-Open `http://127.0.0.1:3100`. Port 3000 was unavailable on the verification machine, so the documented commands use 3100. On other shells use `npm` and the platform-appropriate venv path. The application needs no paid database, map key, external tiles or LLM key. The default backend uses the bundled eight-sale snapshot, derived from the ten illustrative records. Prediction and performance scores are unavailable by default; this is intentional.
+Open http://127.0.0.1:3100. This is genuine historical-data mode, bounded to 300 examined source records by default. It does not fetch the full dataset. Models are optional and never trained in requests. The data is historical, not a live property feed. Data outages are visible; no fake fallback observations or prices are returned.
 
-For optional **real execution of an illustrative trained model**, stop the API, then from the repository root:
+Before starting a second process, inspect `netstat -ano` for ports 8000 and 3100. Stop your existing AMLAAAK process with Ctrl+C in its terminal. Do not terminate unrelated processes or run multiple servers on the same port.
+
+### Explicit offline illustrative mode
+
+Stop the API, set `$env:AMLAAAK_DATA_MODE='illustrative'`, and restart the same Uvicorn command. The original ten-record fixture supplies eight eligible sales. It remains labeled illustrative. `AMLAAAK_DATA_MODE=snapshot` with `AMLAAAK_SNAPSHOT` can select a separately prepared local snapshot. Setting `huggingface` explicitly takes precedence over an old snapshot path.
+
+### Train and activate a genuine-data model
+
+Acquisition is an explicit operator action, bounded to 100-2,000 source records per command. It pins rows-only prefix retrieval so a recovery of remote filtering cannot silently change the training population. Use fresh paths if these already exist:
 
 ```powershell
-.\.venv\Scripts\python model_training.py --data "sample database.csv" --output-dir artifacts/dashboard-demo
-.\.venv\Scripts\python scripts/prepare_dashboard.py --source "sample database.csv" --output data/dashboard-demo.json --kind illustrative --revision da934df --model-source artifacts/dashboard-demo --model-output apps/api/assets/model
-$env:AMLAAAK_MODEL_DIR=(Resolve-Path apps/api/assets/model).Path
+.\.venv\Scripts\python scripts/acquire_divar.py --output data/divar-live-2000.csv --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85 --max-records 2000
+.\.venv\Scripts\python -m amlaaak.real_training --data data/divar-live-2000.csv --output-dir artifacts/divar-temporal --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85
+.\.venv\Scripts\python scripts/prepare_dashboard.py --source data/divar-live-2000.csv --output data/divar-dashboard.json --kind divar --revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85 --model-source artifacts/divar-temporal --model-output apps/api/assets/divar-model
+$env:AMLAAAK_MODEL_DIR=(Resolve-Path apps/api/assets/divar-model).Path
 .\.venv\Scripts\python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Choose fresh paths if outputs already exist. The bundled sample snapshot and new model share the original fixture source hash. The generated model is not committed. The API performs actual sklearn inference, explicitly labeled illustrative; it is not a formula-based or synthetic fallback. `requirements-api-dev.txt` includes the existing ML runtime for local inference/tests. A lean API-only install uses `apps/api/requirements.txt` instead.
+The dataset-server revision must match the requested revision; drift aborts acquisition. A repeated 2,000-row acquisition reproduced the exact training CSV SHA-256. The exporter checks the source hash against the trained artifact, preserves the model, and writes a checksummed manifest. Generated data and models stay ignored. The trained model loads once per worker, with exact numpy/pandas/sklearn/joblib version verification. The successfully executed experiment is documented in REAL_DATA_EXPERIMENT.json. It is a bounded-prefix research model, not a production valuation certification.
+
+For the original illustrative model, the existing `model_training.py` and `scripts/prepare_dashboard.py --kind illustrative` workflow remains supported. Use a separate output bundle and set `AMLAAAK_MODEL_DIR` accordingly. Never label it as a genuine-data model.
 
 ## Environment variables
 
 | App | Variable | Meaning |
 | --- | --- | --- |
-| Web | `API_BASE_URL` | Backend origin, e.g. `https://your-api.vercel.app`; no `/api/v1` suffix |
-| Web | `API_TOKEN` | Optional server-only bearer credential, matching the backend |
-| API | `AMLAAAK_API_TOKEN` | Optional bearer credential; all routes except health are protected |
-| API | `AMLAAAK_SNAPSHOT` | Prepared snapshot path; default is bundled `assets/sample.json` resolved relative to API source |
-| API | `AMLAAAK_MODEL_DIR` | Trusted model bundle directory; unset means unavailable |
-| Container | `PORT` | HTTP listen port, default 8000 |
-| Tests | `PLAYWRIGHT_BASE_URL` | Running frontend URL, default `http://127.0.0.1:3100` |
+| Web | API_BASE_URL | Backend origin, no /api/v1 suffix; server-side only |
+| Web | API_TOKEN | Optional backend bearer token, never NEXT_PUBLIC |
+| API | AMLAAAK_API_TOKEN | Matching bearer token; all endpoints except health are protected |
+| API | AMLAAAK_DATA_MODE | huggingface (default), illustrative, or snapshot |
+| API | HF_MAX_RECORDS | 300 default, clamped to 100-2,000; bounded query window |
+| API | HF_TOKEN | Optional server-only Hugging Face credential |
+| API | AMLAAAK_SNAPSHOT | Local prepared snapshot path for snapshot mode |
+| API | AMLAAAK_MODEL_DIR | Trusted pre-exported local bundle; unset leaves inference unavailable unless remote provisioning is configured |
+| API | AMLAAAK_MODEL_REPO | Explicit operator-approved Hugging Face model owner/repo, optional |
+| API | AMLAAAK_MODEL_REVISION | Exact 40-character model-repository commit, required with remote model provisioning |
+| API | AMLAAAK_MODEL_MANIFEST_SHA256 | Trusted 64-character manifest hash, required with remote provisioning |
+| Container | PORT | HTTP port, default 8000 |
+| Tests | PLAYWRIGHT_BASE_URL | Frontend URL, default http://127.0.0.1:3100 |
+| Tests | AMLAAAK_RUN_LIVE_TESTS | Set to 1 only for real-network Python integration tests |
+| Tests | LIVE_E2E | Set to 1 only for browser tests against a live-mode backend |
 
-Examples are in each app's `.env.example`. Next.js automatically reads `.env.local` in `apps/web`. Uvicorn does **not** automatically read the API example; export variables in your shell or configure them on the host. Never prefix tokens or backend origin with `NEXT_PUBLIC_`.
+Each app has an .env.example. Next reads apps/web/.env.local; Uvicorn does not automatically read the API example. Export API variables in your shell or configure them on the host. Do not expose origin, credentials or artifact configuration using NEXT_PUBLIC prefixes.
 
 ## Two Vercel projects
 
-Configuration was checked against Vercel's [FastAPI guide](https://vercel.com/docs/frameworks/backend/fastapi), [Python runtime](https://vercel.com/docs/functions/runtimes/python), and [function limits](https://vercel.com/docs/functions/limitations) on 2026-11-17. Current documentation supports Python 3.14, `main.py` exporting `app`, and `tool.vercel.entrypoint`. The API selects `main:app` and Python 3.14 using its own manifests. It uses native framework detection rather than legacy `builds`/catch-all rewrites.
+Current official documentation was verified for the [FastAPI entrypoint](https://vercel.com/docs/frameworks/backend/fastapi), [Python runtime](https://vercel.com/docs/functions/runtimes/python), and [limits](https://vercel.com/docs/functions/limitations). Python 3.14 and native main:app entrypoints are supported. The checked-in API manifests use that runtime; no legacy catch-all builds configuration is added.
 
-1. After reviewing and approving publication, import the repository as a Vercel project with **Root Directory `apps/api`**. Keep native FastAPI detection and its default dependency installation. No training/build command is needed. `main.py`, `service/`, the bundled sample snapshot and app manifests are self-contained in this root. Set `AMLAAAK_API_TOKEN` to a strong random secret if desired. Leave snapshot/model variables unset for the bundled demo with honest unavailable inference.
-2. Verify the deployed backend's `/api/v1/health`. Check `dataset_ready: true`. Inspect `/api/v1/model/status` with the token if configured. A healthy analytics API does not require a model.
-3. Import the same repository as a second project with **Root Directory `apps/web`**, Next.js framework, Node 24, install `npm ci`, build `npm run build`, default output settings. Set `API_BASE_URL` to the backend's HTTPS origin and `API_TOKEN` to the same secret. Configure these for every intended preview/production environment. Redeploy after changing environment settings.
-4. Verify `/api/v1/health` through the frontend origin, then verify dashboard filters and a properties page. Requests use the Next server proxy, so no browser CORS allowance is required. The server token is never shipped to the browser.
-5. If Vercel Deployment Protection blocks cross-project server requests, configure authorized server access for those two projects in Vercel; the application bearer token is not a Vercel protection bypass token. Do not disable protections blindly or paste bypass secrets into client variables.
+1. After approving publication, create a Vercel project with Root Directory `apps/api`. Keep native FastAPI detection/default dependency installation. No data-acquisition or training build command is used. Runtime includes httpx/Pydantic/FastAPI; the default API excludes sklearn dependencies.
+2. Set `AMLAAAK_DATA_MODE=huggingface`, `HF_MAX_RECORDS=300`, and optionally `AMLAAAK_API_TOKEN`/`HF_TOKEN`. No writable persistent database exists. Health may report dataset readiness false until a successful lazy query; an unavailable model does not disable analytics.
+3. Deploy a second Vercel project rooted at `apps/web`, framework Next.js, Node 24, install `npm ci`, build `npm run build`, default output settings. Set server-only API_BASE_URL and optional matching API_TOKEN for every intended environment.
+4. Verify the frontend proxy, source coverage, city filters and properties. Configure authorized cross-project access if Vercel Deployment Protection applies; the app bearer token is not a Vercel bypass token. Never expose bypass credentials in a browser.
+5. No trained model binary is present in a Git-import deployment automatically. Either leave it honestly unavailable or provision a reviewed compatible bundle and inference dependencies as described below.
 
-No local writable database is used. Bundled JSON is immutable per deployment. Prepare/redeploy a permitted new snapshot for updates. The default production deployment is explicitly an **illustrative analytics demo**, not real market data or a trained market predictor.
+Python's standard uncompressed function limit is currently 500 MB. Exact installed ML footprint, cold-start time and memory usage must be checked in the target account. The configured API maxDuration is 30 seconds. The proxy times out at 28 seconds; dataset calls have per-request timeouts, bounded retries, bounded pages and cache. Default retrieval is intentionally small. Increase limits only after measuring the actual deployment. Google fonts are fetched by next/font at build time and served locally to browsers.
 
-### Optional Vercel inference and its limits
+### Model provisioning
 
-Vercel documents a 500 MB standard uncompressed Python function bundle limit (larger-function beta options exist). The dependency footprint, cold starts and runtime memory must be verified in the actual deployment. The current `maxDuration` is 30 seconds; no request trains a model. The snapshot has a separate 50 MB guard, and export has a 100 MB model guard; these do not guarantee that a combined deployment fits the platform.
+Local bundles require explicit AMLAAAK_MODEL_DIR. Optional remote provisioning requires an operator-approved Hugging Face model repository, exact revision, and independently trusted manifest SHA-256. The provider downloads only manifest.json, metadata.json and model.joblib, applies 128 KB / 2 MB / 100 MB download guards, verifies hashes, then checks package versions before trusted loading. It does not download training data. No model-repository URL was invented, no artifact was uploaded, and remote model hosting was not exercised in this session. Deterministic trust-guard tests cover provisioning; actual inference was verified with the locally exported genuine model.
 
-The checked-in Vercel backend deliberately uses lightweight dependencies. To attempt inference there, an operator must supply the previously exported trusted model bundle, install the **exact** training versions of numpy/pandas/scikit-learn/joblib in the API project's dependency manifests, set `AMLAAAK_MODEL_DIR` and validate the built function's size and health. The generated model directory is Git-ignored and will not appear in Git-import deployments automatically. A reviewed local CLI deployment can include a prepared bundle under the API root via its `.vercelignore`; do not commit arbitrary large binaries or secrets. No full model is trained or downloaded by the configured Vercel build.
+Provisioned artifacts use a worker-local temporary directory. It is not persistent Vercel storage and is not a replacement for a model registry. Startup provisioning runs once per worker, not per valuation. Only load artifacts from a source you trust: integrity checks do not make arbitrary pickle/joblib safe.
 
-Because a Linux Vercel inference bundle has not been built or deployed in this session, prefer the container fallback below for predictable control of ML dependencies. Do not describe local inference verification as successful Vercel deployment.
+On Vercel, add the exact ML package versions recorded in the metadata to the API dependency manifests only if its built function fits. Verify the bundle/cold start before enabling inference. Otherwise retain the Vercel frontend and use the container alternative. No successful hosted inference deployment is claimed.
 
-## Render / Docker backend alternative
+## Render / Docker alternative
 
-`Dockerfile` and `render.yaml` implement a separate backend deployment while retaining the Vercel frontend. The default Render blueprint deploys a read-only sample analytics API with a generated bearer token and health check. Review the chosen hosting plan and environment before creating resources; no database or persistent disk is required. Copy the generated token into the Vercel frontend's server-side `API_TOKEN` and use the Render HTTPS origin as `API_BASE_URL`.
-
-To build a local container (Docker must be installed):
+The root Dockerfile and render.yaml remain supported, without a database service or persistent SQLite requirement. The default Render blueprint deploys the lean live-data API with a generated app token. Review the hosting plan before creating resources; copy the generated token to the Vercel frontend's API_TOKEN and use Render's HTTPS origin as API_BASE_URL.
 
 ```powershell
 docker build -t amlaaak-api .
-docker run --rm -p 8000:8000 amlaaak-api
+docker run --rm -p 8000:8000 -e AMLAAAK_DATA_MODE=huggingface amlaaak-api
 ```
 
-For optional inference, first export the trusted bundle into `apps/api/assets/model` with the earlier command, then:
+For a previously prepared local genuine-data bundle:
 
 ```powershell
 docker build --build-arg WITH_INFERENCE=true -t amlaaak-api-inference .
-docker run --rm -p 8000:8000 -e AMLAAAK_MODEL_DIR=/app/apps/api/assets/model amlaaak-api-inference
+docker run --rm -p 8000:8000 -e AMLAAAK_DATA_MODE=huggingface -e AMLAAAK_MODEL_DIR=/app/apps/api/assets/divar-model amlaaak-api-inference
 ```
 
-The Docker context includes that explicitly prepared local bundle; Git does not. Publish an approved built image to an operator-controlled registry and select that image on Render to retain the bundle, or implement your own trusted artifact provisioning in CI. A Git-only Render blueprint deployment has no ignored model artifact and will stay in unavailable mode. The image must be built for the target host architecture. No Docker engine was available in the implementation session, so container execution and hosted deployment remain unverified.
+The Docker context can include the explicitly prepared ignored bundle; Git cannot. An approved built image or approved remote artifact provisioning is needed on the host. A Git-only blueprint with no artifact remains model-unavailable. No image was pushed. The local Docker daemon was unavailable, so container execution and hosted deployment remain unverified.
 
-## Real data preparation
+## Checks and screenshots
 
-Keep the existing local Divar CSV/SQLite ingestion workflow described in the README. Obtain the dataset manually after reviewing its ODbL terms. Then run the snapshot exporter against a documented, permitted local subset, using `--kind divar`, an actual source revision, and a fresh ignored output path such as `apps/api/assets/analytics.json`. Configure `AMLAAAK_SNAPSHOT` accordingly. Do not relabel the fixture as Divar data. For a model bundle, training and export must reference the exact same source file hash. The exporter rejects over 50,000 eligible rows instead of silently truncating them; for larger serving needs add a database adapter.
-
-Generated real-data snapshots are ignored to avoid accidental redistribution. For deployment, deliberately provision the reviewed snapshot as an artifact inside the API root or container image, retaining provenance and respecting licensing. No external dataset URL is fetched at request time. A hosted Postgres database is unnecessary for the included demo, and writable SQLite is not used for Vercel persistence.
-
-## Verification and screenshots
-
-From repository root:
+From root: install requirements-api-dev.txt, then run `.\.venv\Scripts\python -m pytest -q` and `python -m pip check` through the venv. The default Python suite runs without network access; two live tests are explicitly skipped.
 
 ```powershell
-.\.venv\Scripts\python -m pytest -q
-.\.venv\Scripts\python -m pip check
+$env:AMLAAAK_RUN_LIVE_TESTS='1'
+.\.venv\Scripts\python -m pytest -q -m live
 ```
 
-From `apps/web`, with both servers running:
+From apps/web, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`. With an illustrative-mode API and both servers running, run `npm.cmd run test:e2e` (12 deterministic browser tests; two live tests skipped). Playwright uses installed Microsoft Edge headless. Install an official Playwright browser/update its channel if Edge is absent.
+
+For a live-mode API with the real trained model:
 
 ```powershell
-npm.cmd run test
-npm.cmd run typecheck
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run test:e2e
+$env:LIVE_E2E='1'
+npm.cmd run test:e2e -- --grep 'live Hugging Face integration'
 ```
 
-Playwright uses installed Microsoft Edge in headless mode. If absent, install an official Playwright browser and update `channel` in `playwright.config.ts`. The eight end-to-end tests use actual frontend/backend calls for successful paths, and inject a failed response only to verify the error UI. Prediction success is exercised when the optional model is configured; otherwise that test verifies disabled/unavailable behavior. The recorded implementation run used an actual illustrative model and exercised the prediction POST.
+Those tests use actual Next proxy -> FastAPI -> HF calls, city neighborhoods, real comparable source identities and actual model output. No successful backend responses are mocked in production. Deterministic tests mock only external boundaries, plus an explicit browser error response to test failure UX.
 
-Screenshots are generated under `apps/web/test-results/overview-desktop.png`, `overview-mobile.png`, and (with model) `prediction-desktop.png`. Review them at native scale; they are ignored generated QA artifacts. Desktop and 390px mobile screenshots were inspected against the supplied reference. The system-browser preview bridge was unavailable, so visual QA used the explicitly requested Playwright test workflow. Final results and remaining limits are recorded in `VALIDATION.md`.
+Screenshots are under apps/web/test-results: desktop/mobile overview, valuation, open dropdowns without hover, selected province, live-dashboard and live-valuation. They are ignored generated QA files. Browser QA used the explicitly requested Playwright workflow because the system-browser bridge was unavailable. VALIDATION.md and PLATFORM_REPORT.md record verified results and remaining limits.

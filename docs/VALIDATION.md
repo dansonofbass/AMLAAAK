@@ -1,38 +1,39 @@
-# Full-stack validation — 2026-11-17
+# Valuation platform validation - 2026-11-17
 
-## Implemented and exercised
+Baseline f7f6f8c and all existing commits/authors were preserved. Existing test coverage was retained; browser selectors were adapted to accessible picker controls and the combined valuation route.
 
-- Five integrated Next.js pages: overview, market analytics, properties, prediction and model performance; contextual rule-based insights available across the workspace.
-- Reference image inspected before implementation. Desktop floating widgets, map composition, cyan/violet chart styling and separate insights rail adapted to real-estate data. Mobile stacking and zero document overflow verified at 390 × 844.
-- Read-only FastAPI snapshot serving, typed Pydantic responses, Zod frontend boundaries, Next.js server proxy, source provenance, safe optional bearer authentication, server pagination/search/sort and filters.
-- Existing training/preprocessing code reused for snapshot export. Ten fixture records yield eight eligible distinct residential sales. No full Divar download, raw text publication or private coordinates.
-- Real sklearn prediction executed through browser → Next proxy → FastAPI → trusted model. The model is fitted on six illustrative training records and is labeled demo, with source-unit caveats. Default unconfigured state returns no estimate and no fabricated metrics.
-- Actual artifact metrics shown only when metadata is loaded. No residual visualization or LLM claims.
+## Verified execution
 
-## Results
+- Genuine HF metadata, splits, rows and Parquet discovery succeeded at revision e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85. Actual filter/orderby probes failed with temporary upstream authentication-check errors/timeouts. Working runtime uses honest bounded rows-prefix fallback.
+- Explicit acquisition examined 2,000 source rows, retained 862 eligible sales, and stored only safe structured fields in an ignored local file. Five near-duplicate specification groups were removed for training.
+- Real-data training completed: 414 train / 323 validation / 120 later-period test records. Test forest MAE 3,139,678,931.81; RMSE 7,929,988,797.03; R2 0.166432. Baseline MAE 4,291,034,063.79; RMSE 9,167,436,225.77; R2 -0.114016. Original source units; no full-market validation claim.
+- Actual browser -> Next proxy -> FastAPI -> HF retrieval and real sklearn inference executed. Comparable cards used genuine retrieved source rows, neighborhoods and historical months. Model estimate and comparable median remained separate.
+- Offline mode also passed with real fixture analytics and illustrative model inference. No hardcoded successful responses substitute for production data.
+
+## Automated checks
 
 | Check | Verified result |
 | --- | --- |
-| Python `pytest -q` | 52 passed |
-| `pip check` | No broken requirements |
-| Frontend Vitest | 9 passed across two files |
-| Playwright / headless Microsoft Edge | 8 passed against the optimized production server; actual backend success paths including prediction |
-| TypeScript strict typecheck | Passed |
-| ESLint | Passed, no lint errors or warnings |
-| Next production build | Passed; five page routes and API proxy compiled |
-| API OpenAPI generation | 9 application paths generated |
-| Lean default process | Health/analytics work without importing sklearn |
-| Runtime npm audit | 0 reported vulnerabilities (`--omit=dev`) |
-| Source checks | Existing six-commit history preserved; generated data/models/environment ignored |
+| Deterministic Python suite | 72 passed; 2 live tests skipped by default |
+| Opt-in actual-network Python tests | 2 passed; not mocked |
+| Frontend Vitest | 11 passed |
+| Offline Playwright | 12 passed; 2 live tests skipped |
+| Actual live Playwright | 2 passed; actual backend/HF/model calls |
+| TypeScript | Passed |
+| ESLint | Passed |
+| Production build | Passed; Roboto/Vazirmatn fonts compiled |
+| Existing ML/API tests | Retained and passed |
 
-Environment: Windows, Python 3.14.7, Node 24.18.0, Next.js 16.4.6, React 19.3.1. `apps/web/package-lock.json` locks frontend dependencies. ML runtime pins and metadata remain intact. API direct runtime dependencies are pinned separately. Python tests produce one upstream Starlette warning about future `httpx2` migration; current `httpx` TestClient tests pass. This is a dependency deprecation, not a hidden application failure.
+The tests cover shared parsing, invalid/missing fields, pagination, retries, long/short 429 handling, cache capacity/expiry, revision drift, unavailable models, actual serialized model predictions, temporal splitting, comparable ranking/coverage, approved artifact trust guards, provider response contracts, geographic point containment, dropdowns, map selection and responsive layouts. The Python suite emits one existing upstream Starlette TestClient httpx deprecation warning.
 
-The first browser run found ambiguous alert selectors (Next's own route announcer also has role alert). Tests were scoped to application alerts, then all eight passed. Visual review caught chart animation timing and colliding nearby city labels; deterministic chart renders and collision-aware persistent labels repaired those issues. Final UI data is not hardcoded successful responses; tests inject only an explicit failed response to verify the error state.
+## Visual checks
 
-## Remaining verification limits
+Playwright screenshots were inspected for desktop/mobile valuation, opened city popups without mouse hover, selected province geometry, and live historical-data results. Popup background/text are explicit dark/light colors; search and keyboard selection work. Roboto is applied via next/font/google with a Persian fallback, including chart/map text. Mobile tests assert no document horizontal overflow. Geometry is province-level and clearly labeled, not fabricated city limits.
 
-The system browser bridge was unavailable, so visual verification used screenshots from the explicitly requested Playwright test workflow. Desktop, mobile and prediction screenshots were inspected. They remain ignored under `apps/web/test-results/` and can be regenerated.
+Screenshots are ignored under apps/web/test-results. The system-browser bridge was unavailable, so visual QA used the explicitly requested Playwright workflow. No accessibility-certification or measured layout-shift score is claimed.
 
-Vercel configuration was checked against official documentation, not a live deployment. The backend is self-contained under `apps/api` with a native entrypoint and Python version declaration; the frontend is self-contained under `apps/web`. Vercel model dependency footprint/cold starts and cross-project deployment protection require validation in the operator's account. Docker CLI was present but its daemon was unavailable, so the Docker/Render fallback was implemented and documented but not run. No hosting resources were created, deployment settings changed, Git pushes attempted or historical commits rewritten.
+## Environment and verification limits
 
-This remains an illustrative research application. No real-data market performance, calibrated uncertainty, production scale, time-series forecast, private-data authorization layer or production-readiness certification is claimed.
+Windows, Python 3.14.7, Node 24.18.0, Next.js 16.4.6, React 19.3.1. A damaged local dependency installation was preserved outside the frontend tree and replaced from the lockfile. Windows sandbox process-launch error 1909 required the host executor for later checks. Host access to the old pytest system-temp/cache directories failed; final pytest used a fresh verified workspace-local --basetemp and -o cache_dir under ignored data/. No tests were removed or skipped to hide failures. Stale verified AMLAAAK servers were restarted; unrelated applications were untouched. These environment failures were not hidden as successful tests; final checks ran against the repaired installation and current routes.
+
+No deployment or push was attempted. Vercel entrypoint/runtime/limits were checked against official documentation, but target-host bundle footprint/cold starts and hosted inference remain unverified. The Docker daemon was unavailable; container/Render configuration is implemented and documented but execution is unverified. Remote model hosting/provisioning was not exercised with an approved real repository because none was provided; trust guards were tested with mocked external HTTP only. No managed database was introduced.
