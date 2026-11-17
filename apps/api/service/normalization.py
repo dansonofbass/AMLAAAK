@@ -28,7 +28,7 @@ def number(value):
     if value in WORDS:
         return float(WORDS[value])
     value = value.replace('٬', ',').replace('٫', '.')
-    if not re.fullmatch(r'[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?', value):
+    if not re.fullmatch(r'[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:[eE][+-]?\d+)?', value):
         return NAN
     result = float(value.replace(',', ''))
     return result if math.isfinite(result) else NAN

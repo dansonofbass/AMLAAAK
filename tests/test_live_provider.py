@@ -46,6 +46,8 @@ def test_shared_normalization_and_missing_values():
     assert normalize_sale({**RAW,'cat2_slug':'residential-rent'}) is None
     assert normalize_sale({**RAW,'price_value':0}) is None
     assert normalize_sale({**RAW,'building_size':'1-2'}) is None
+    assert normalize_sale({**RAW,'price_value':'1e+17'})['price_value']==normalize_sale({**RAW,'price_value':1e17})['price_value']
+    assert normalize_sale({**RAW,'price_value':'1e999'}) is None
 
 
 def test_bounded_prefix_cache_filters_and_provenance():
