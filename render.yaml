@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: amlaaak-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: AMLAAAK_API_TOKEN
+        generateValue: true

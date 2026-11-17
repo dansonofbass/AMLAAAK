@@ -1,0 +1,13 @@
+.git
+.venv
+.npm-cache
+.pytest_cache
+**/__pycache__
+apps/web
+artifacts
+data
+tests
+docs
+*.png
+.env*
+**/.env*
