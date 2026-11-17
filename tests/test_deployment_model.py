@@ -18,7 +18,9 @@ def test_deployment_dependencies_match_trained_model():
     for package in ('numpy', 'pandas', 'scikit-learn', 'joblib'):
         pinned = f'{package}=={versions[package]}'
         assert pinned in requirements and pinned in project['dependencies']
-    assert CONFIG['env']['AMLAAAK_DATA_MODE'] == 'huggingface'
+    # Runtime defaults to huggingface; leave mode out of vercel.json so the
+    # operator can opt into prepared data using backend dashboard variables.
+    assert CONFIG['env'].get('AMLAAAK_DATA_MODE', 'huggingface') == 'huggingface'
 
 
 @pytest.mark.live
@@ -32,6 +34,7 @@ def test_approved_public_model_and_real_valuation(monkeypatch):
 
     for key, value in CONFIG['env'].items():
         monkeypatch.setenv(key, value)
+    monkeypatch.setenv('AMLAAAK_DATA_MODE', 'huggingface')
     monkeypatch.delenv('AMLAAAK_MODEL_DIR', raising=False)
     monkeypatch.delenv('AMLAAAK_API_TOKEN', raising=False)
     started = time.perf_counter()
