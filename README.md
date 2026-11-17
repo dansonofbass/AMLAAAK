@@ -1,10 +1,45 @@
 # AMLAAAK — Real Estate Price Prediction
 
-AMLAAAK is a local Python prototype for estimating residential asking prices from structured property listings. It validates locally supplied Divar-format CSV data, optionally imports it into SQLite, and evaluates a RandomForestRegressor against a median-price baseline. It saves fitted preprocessing/model pipelines and run metadata. There is no deployed service or user interface.
+AMLAAAK combines a reproducible Python price-modeling pipeline with a Next.js/FastAPI real-estate analytics workspace. It validates locally supplied Divar-format data, evaluates a RandomForestRegressor against a median-price baseline, and serves privacy-conscious analytics through typed API contracts. A configured trusted model artifact enables actual inference. Nothing has been publicly deployed as part of this implementation.
 
 ## Status and scope
 
-This is a portfolio ML prototype, not a production valuation system. The included **10 illustrative records are not verified Divar observations**. They demonstrate file formats and execution only. Eight are sales and two are rentals; training excludes the rentals. No full-dataset experiment or real-world accuracy claim is made.
+This is a portfolio research prototype, not a production valuation system. The included **10 illustrative records are not verified Divar observations**. Eight are sales and two are rentals; training excludes the rentals. The dashboard's bundled snapshot contains those eight eligible sales and labels them prominently. No full-dataset experiment or real-world accuracy claim is made. By default, predictions and model scores remain unavailable until a trusted model bundle is explicitly configured.
+
+## Analytics workspace
+
+The dark analytics interface adapts the supplied `amlak dashboard.png`: a geographic canvas, floating/resizable chart cards, compact KPIs, cyan/violet accents, and a separate contextual insights rail. On mobile the charts stack and the rail opens on demand. The rail contains rule-based numerical observations, not a simulated AI assistant.
+
+| Page | Implemented behavior |
+| --- | --- |
+| Overview `/` | Verified counts/medians, interactive Iran city map, price/area/year charts, type composition and amenities |
+| Market analytics `/analytics` | Shared city/type/range/search filters, chart-driven selection and reset |
+| Properties `/properties` | Server-side search, sorting, pagination and accessible detail dialog; no private text or exact locations |
+| Price prediction `/predict` | Validated feature form, real FastAPI/sklearn inference when configured, explicit demo/unavailable states |
+| Model performance `/model` | Artifact-backed forest/baseline metrics, source/split/version metadata; no invented residuals |
+
+All successful UI data flows through typed FastAPI/Pydantic responses, validated by Zod at the frontend boundary. The map uses bundled public-domain Natural Earth boundaries and approximate city centers; no map key or external tiles are needed. Unmapped cities remain in tables and aggregates.
+
+For local development, install Python 3.14 and Node 24, then run from the repository root:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements-api-dev.txt
+.\.venv\Scripts\python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal:
+
+```powershell
+cd apps/web
+npm.cmd ci
+$env:API_BASE_URL='http://127.0.0.1:8000'
+npm.cmd run dev -- --port 3100
+```
+
+Open `http://127.0.0.1:3100`. This starts illustrative analytics with honest unavailable model status. The [deployment guide](docs/DEPLOYMENT.md) includes the exact optional model-training/export commands, environment variables, two independent Vercel projects, and Render/Docker fallback. It also explains how to prepare a permitted real-data snapshot. No training occurs during build or request handling, and no writable persistent SQLite database is used by the hosted API.
+
+Further documentation: [architecture](docs/ARCHITECTURE.md), [API routes and schemas](docs/API.md), [deployment and screenshots](docs/DEPLOYMENT.md), [verified validation results](docs/VALIDATION.md). Interactive OpenAPI is available at the backend's `/docs`.
 
 ## Data source and licensing
 
@@ -55,21 +90,29 @@ Both Persian and Arabic numeral characters and conventional thousands/decimal se
 
 ## Technology and repository structure
 
-Python, pandas, NumPy, scikit-learn, joblib, standard-library SQLite, and pytest. Flask, plotting libraries, and calendar conversion dependencies are unnecessary and have been removed.
+Training uses Python, pandas, NumPy, scikit-learn, joblib, standard-library SQLite, and pytest. The serving stack adds FastAPI/Pydantic, Next.js App Router, React/TypeScript, Tailwind CSS, shadcn-style Radix UI primitives, Lucide, Recharts, React Leaflet, TanStack Query and Zod. Vitest covers frontend contracts/components and Playwright covers end-to-end integration. The default serving API does not import the heavy ML runtime. Flask, Python plotting libraries, and calendar conversion dependencies are unnecessary.
 
 ```text
 amlaaak/
   data.py              CSV validation, loading, SQLite ingestion CLI
   preprocessing.py     Stateless parsing, filtering, feature definitions
   training.py          Pipelines, evaluation, persistence, training CLI
+apps/
+  api/                 Independently deployable FastAPI app and illustrative snapshot
+  web/                 Next.js analytics workspace and server-side API proxy
+scripts/
+  prepare_dashboard.py Offline privacy-conscious snapshot / trusted model export
 model_training.py      Compatibility training entry point
 Schema.sql             60-column raw TEXT staging schema
 sample database.csv    Repaired 10-row illustrative fixture
 requirements.txt       Pinned direct runtime dependencies
 requirements-dev.txt   Runtime dependencies plus pytest
 requirements-lock.txt  Complete tested Windows/Python 3.14 environment
-tests/test_pipeline.py Parsing, ingestion, leakage boundaries, training tests
-docs/AUDIT.md          Audit findings and history decisions
+requirements-api-dev.txt API, training and API-test dependencies
+tests/                 Preprocessing, ingestion, training and API tests
+Dockerfile             Lean API or optional inference container
+render.yaml            Backend deployment fallback
+docs/                  Audit, architecture, API, deployment and validation
 ```
 
 ## Installation
@@ -130,14 +173,22 @@ Each output directory contains:
 - `baseline.joblib`: fitted median-baseline pipeline.
 - `metadata.json`: source path/SHA-256, row counts, seed, split size, input/transformed features, estimator parameters, package versions, unit caveat, and metrics.
 
-For programmatic inference, call `prepare` on Divar-format labeled records, select `FEATURES`, then call the loaded pipeline's `predict`. The saved pipeline expects normalized feature frames; it does not include raw parsing. There is currently no dedicated inference CLI or unlabeled-record ingestion contract. Only load trusted joblib files and use matching package versions. The saved forest remains fitted on the training partition used for evaluation; it is not subsequently refitted on all rows.
+For direct programmatic inference on labeled records, call `prepare`, select `FEATURES`, then call the loaded pipeline's `predict`. The saved pipeline expects normalized feature frames; it does not include raw parsing. The FastAPI prediction route provides a validated unlabeled-feature contract and constructs that frame for a configured bundle. See [API documentation](docs/API.md). Only load trusted joblib files and use matching package versions. The saved forest remains fitted on the training partition used for evaluation; it is not subsequently refitted on all rows.
+
+For serving, `scripts/prepare_dashboard.py` exports an existing model with its metadata and a checksummed manifest; it does not train or fabricate one. Generated bundles and real-data snapshots are ignored. The checked-in sample snapshot is derived solely from the illustrative fixture. Snapshot export is bounded to 50,000 eligible records; larger deployments require a database-backed adapter rather than loading the full source into a browser.
+
+## Application checks
+
+From the repository root after installing `requirements-api-dev.txt`, run `python -m pytest -q` through the virtual environment. In `apps/web`, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`, and, with both servers running, `npm.cmd run test:e2e`.
+
+Verified on Windows/Python 3.14.7/Node 24.18.0: **52 Python tests, 9 frontend tests, and 8 Playwright tests passed**; typecheck, lint and production build passed. The browser run exercised actual illustrative-model inference. Screenshots are generated in `apps/web/test-results/`; capture/review instructions and verification limits are in [deployment](docs/DEPLOYMENT.md) and [validation](docs/VALIDATION.md). Hosted deployment and Docker execution have not been verified.
 
 ## Limitations, roadmap, and responsible use
 
 Asking prices are not completed-sale prices. Small or unrepresentative samples, duplicates beyond exact matches, geographic differences, inflation, and stale listings can distort results. Random holdouts do not establish performance on future dates or unseen neighborhoods. Solar Hijri construction years are retained directly; censored years lose information. Amenities are simplified and median imputation is only a baseline choice.
 
-Next steps are a documented full-data experiment, temporal/geographic validation, duplicate/property grouping, stronger source-unit verification, better censored-year handling, and uncertainty/subgroup analysis. Evaluate these before adding model complexity or a serving interface. Do not use this prototype as the sole basis for lending, investment, or housing decisions. Avoid republishing listing text or attempting to identify advertisers.
+Next steps are a documented full-data experiment, temporal/geographic validation, duplicate/property grouping, stronger source-unit verification, better censored-year handling, and uncertainty/subgroup analysis. Evaluate these before relying on dashboard estimates. Production use also needs a reviewed data release, load tests, target-host bundle validation, appropriate authentication and rate limiting. Do not use this prototype as the sole basis for lending, investment, or housing decisions. Avoid republishing listing text or attempting to identify advertisers.
 
 ## Development history
 
-The original two commits and their authors/dates are preserved. New work uses Conventional Commits. See [the audit](docs/AUDIT.md) for findings and why published history was not rewritten.
+The six commits present at the start of the dashboard work, including their authors/dates, are preserved. New work uses Conventional Commits without rewriting or force-pushing. See [the original audit](docs/AUDIT.md) for the earlier ML cleanup and [validation](docs/VALIDATION.md) for this application's scope and checks. No push or deployment was performed.
