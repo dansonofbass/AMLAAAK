@@ -24,7 +24,9 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useAnalytics, useWorkspace } from "./workspace";
+import { useAnalytics, useWorkspace, useFacets } from "./workspace";
+import { Picker } from "./ui/picker";
+import { BrandSymbol } from "./brand";
 import { Button } from "./ui/button";
 import { compact, title } from "@/lib/utils";
 const nav = [
@@ -45,14 +47,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { filters, setFilters } = useWorkspace();
   const { summary, cities } = useAnalytics();
   const data = summary.data;
+  const facets = useFacets();
   const active = nav.find((n) => n.href === pathname) || nav[0];
   return (
     <div className="app-frame">
       <header className="app-header">
         <Link href="/" className="brand">
-          <span className="brand-mark">
-            <Building2 size={18} />
-          </span>
+          <BrandSymbol size={31} />
           AMLAAAK<span className="brand-dot">.</span>
         </Link>
         <div className="header-breadcrumb">
@@ -79,6 +80,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
         className={`app-body ${expanded ? "nav-expanded" : ""} ${insights === false ? "insights-hidden" : ""} ${insights === true ? "insights-open" : ""}`}
       >
         <aside className="navigation">
+          <Link href="/" className="sidebar-brand" aria-label="AMLAAAK home">
+            <BrandSymbol size={30} />
+            {expanded && <span>AMLAAAK</span>}
+          </Link>
           <button
             className="nav-toggle"
             onClick={() => setExpanded(!expanded)}
@@ -140,23 +145,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </label>
               <label className="city-select">
                 <MapPin size={13} />
-                <select
-                  aria-label="Selected city"
+                <Picker
+                  searchable
+                  label="Selected city"
                   value={filters.city || ""}
-                  onChange={(e) =>
+                  onChange={(city) =>
                     setFilters({
                       ...filters,
-                      city: e.target.value || undefined,
+                      city: city || undefined,
+                      neighborhood: undefined,
                     })
                   }
-                >
-                  <option value="">All cities</option>
-                  {data?.available_cities.map((city) => (
-                    <option key={city} value={city}>
-                      {title(city)}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "All cities" },
+                    ...(
+                      facets.data?.cities ||
+                      data?.available_cities ||
+                      []
+                    ).map((city) => ({ value: city, label: title(city) })),
+                  ]}
+                />
               </label>
               <button
                 className="insights-toggle"
@@ -174,7 +182,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {data
                 ? data.provenance.kind === "illustrative"
                   ? "Illustrative sample · Not live market data"
-                  : "Prepared Divar snapshot"
+                  : "Retrieved historical Divar records · bounded coverage"
                 : "Connecting to data source"}
             </span>
             <span>Original source units · Currency unverified</span>
@@ -300,7 +308,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="provenance-line">
                   <span>Source revision</span>
-                  <code>{data?.provenance.revision || "—"}</code>
+                  <code title={data?.provenance.revision}>
+                    {data?.provenance.revision.slice(0, 12) || "—"}
+                  </code>
                 </div>
                 <Link href="/model">
                   Inspect model provenance <ArrowUpRight size={12} />

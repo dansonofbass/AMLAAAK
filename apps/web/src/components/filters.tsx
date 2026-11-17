@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
 import { RotateCcw, SlidersHorizontal, X } from "lucide-react";
-import { useWorkspace } from "./workspace";
+import { useWorkspace, useFacets } from "./workspace";
+import { Picker } from "./ui/picker";
 import { Button } from "./ui/button";
 import { title } from "@/lib/utils";
 import type { Filters } from "@/lib/contracts";
 export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
   const { filters, setFilters } = useWorkspace();
+  const facets = useFacets(filters.city);
+  const allFacets = useFacets();
   const [open, setOpen] = useState(detailed);
   const [draft, setDraft] = useState<Filters>({});
   const [error, setError] = useState("");
@@ -16,20 +19,56 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
       <div className="filters-bar">
         <span className="eyebrow">RESIDENTIAL SALES</span>
         <span className="filter-divider" />
-        <select
-          aria-label="Property type filter"
+        <div className="mobile-city-filter">
+          <Picker
+            searchable
+            label="City filter"
+            value={filters.city || ""}
+            onChange={(city) =>
+              setFilters({
+                ...filters,
+                city: city || undefined,
+                neighborhood: undefined,
+              })
+            }
+            options={[
+              { value: "", label: "All cities" },
+              ...(allFacets.data?.cities || []).map((c) => ({
+                value: c,
+                label: title(c),
+              })),
+            ]}
+          />
+        </div>
+        <Picker
+          label="Property type filter"
           value={filters.property_type || ""}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              property_type: e.target.value || undefined,
-            })
+          onChange={(value) =>
+            setFilters({ ...filters, property_type: value || undefined })
           }
-        >
-          <option value="">All property types</option>
-          <option value="apartment-sell">Apartment</option>
-          <option value="house-villa-sell">House / villa</option>
-        </select>
+          options={[
+            { value: "", label: "All property types" },
+            { value: "apartment-sell", label: "Apartment" },
+            { value: "house-villa-sell", label: "House / villa" },
+          ]}
+        />
+        {filters.city && (
+          <Picker
+            searchable
+            label="Neighborhood filter"
+            value={filters.neighborhood || ""}
+            onChange={(value) =>
+              setFilters({ ...filters, neighborhood: value || undefined })
+            }
+            options={[
+              { value: "", label: "All neighborhoods" },
+              ...(facets.data?.neighborhoods || []).map((n) => ({
+                value: n,
+                label: title(n),
+              })),
+            ]}
+          />
+        )}
         {filters.city && (
           <button
             className="filter-chip"
@@ -71,7 +110,7 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
           className="advanced-filters"
           onSubmit={(e) => {
             e.preventDefault();
-            for (const field of ["area", "price", "year"]) {
+            for (const field of ["area", "price", "year", "bedrooms"]) {
               const low = draft[`${field}_min` as keyof Filters],
                 high = draft[`${field}_max` as keyof Filters];
               if (low && high && Number(low) > Number(high)) {
@@ -83,14 +122,16 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
             setFilters({ ...filters, ...draft });
           }}
         >
-          {(["area", "price", "year"] as const).map((field) => (
+          {(["area", "price", "year", "bedrooms"] as const).map((field) => (
             <fieldset key={field}>
               <legend>
                 {field === "area"
                   ? "Area (m²)"
                   : field === "price"
                     ? "Asking price (source units)"
-                    : "Construction year (Solar Hijri)"}
+                    : field === "year"
+                      ? "Construction year (Solar Hijri)"
+                      : "Bedrooms"}
               </legend>
               {(["min", "max"] as const).map((bound) => (
                 <input

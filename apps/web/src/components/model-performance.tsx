@@ -71,6 +71,9 @@ export function ModelPerformance() {
           <div className="kpi-grid">
             {[
               { label: "Training records", v: m.train_rows },
+              ...(m.validation_rows != null
+                ? [{ label: "Validation records", v: m.validation_rows }]
+                : []),
               { label: "Test records", v: m.test_rows },
               { label: "Eligible sales", v: m.eligible_rows },
               { label: "Split seed", v: m.seed },
@@ -82,11 +85,31 @@ export function ModelPerformance() {
                 </div>
                 <strong>{k.v}</strong>
                 <div className="kpi-detail">
-                  Holdout {m.test_size !== null ? m.test_size * 100 : "—"}%
+                  Test partition{" "}
+                  {m.test_size !== null ? (m.test_size * 100).toFixed(1) : "—"}%
                 </div>
               </div>
             ))}
           </div>
+          {m.split_method && (
+            <div className="coverage-notice">
+              <strong>Evaluation design</strong>
+              <p>
+                {m.split_method.replaceAll("_", " ")} · Validation selects leaf
+                size; test data stays held out.
+              </p>
+              <code>
+                Dataset revision {m.source_revision || "Not recorded"}
+              </code>
+              {m.validation_metrics && (
+                <p>
+                  Validation MAE: {compact(m.validation_metrics.mae)} source
+                  units. Per-city metrics require at least 30 test records;
+                  inspect artifact metadata.
+                </p>
+              )}
+            </div>
+          )}
           <section className="table-panel metrics-table">
             <div className="table-toolbar">
               <h2>Random Forest vs. median baseline</h2>

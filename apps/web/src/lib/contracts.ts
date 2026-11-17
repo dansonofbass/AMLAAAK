@@ -5,16 +5,37 @@ export const modelSchema = z.object({
   name: z.string(),
   version: z.string().nullable(),
   message: z.string(),
+  source_revision: z.string().nullable().optional(),
+});
+export const coverageSchema = z.object({
+  records_examined: z.number(),
+  normalized_records: z.number(),
+  eligible_records: z.number(),
+  upstream_matching_rows: z.number().nullable(),
+  exhaustive: z.boolean(),
+  bounded: z.boolean(),
+  sampled: z.boolean(),
+  statistics_full_population: z.boolean(),
+  remote_filter_supported: z.boolean(),
+  remote_sort_supported: z.boolean(),
+  sorting_scope: z.string(),
+  method: z.string(),
+  limitations: z.array(z.string()),
 });
 export const provenanceSchema = z.object({
   kind: z.enum(["illustrative", "divar"]),
   source_url: z.string(),
-  source_sha256: z.string(),
+  source_sha256: z.string().nullable(),
   revision: z.string(),
   input_rows: z.number(),
   eligible_rows: z.number(),
   units: z.string(),
   note: z.string(),
+  provider: z.string().default("snapshot"),
+  coverage: coverageSchema.nullable().optional(),
+  fetched_at: z.string().nullable().optional(),
+  period_start: z.string().nullable().optional(),
+  period_end: z.string().nullable().optional(),
 });
 export const summarySchema = z.object({
   count: z.number(),
@@ -62,6 +83,7 @@ export const distributionsSchema = z.object({
     }),
   ),
   missing_years: z.number(),
+  coverage: coverageSchema.nullable().optional(),
 });
 export const propertySchema = z.object({
   id: z.string(),
@@ -78,12 +100,19 @@ export const propertySchema = z.object({
   has_elevator: z.boolean().nullable(),
   has_balcony: z.boolean().nullable(),
   has_warehouse: z.boolean().nullable(),
+  neighborhood_slug: z.string().nullable().optional(),
+  created_at_month: z.string().nullable().optional(),
+  source_identity: z.string().nullable().optional(),
+  source_revision: z.string().nullable().optional(),
+  source_row_index: z.number().nullable().optional(),
 });
 export const propertyPageSchema = z.object({
   items: z.array(propertySchema),
   total: z.number(),
   page: z.number(),
   page_size: z.number(),
+  coverage: coverageSchema.nullable().optional(),
+  provenance: provenanceSchema.nullable().optional(),
 });
 export const metricsSchema = z.object({
   status: modelSchema,
@@ -103,6 +132,13 @@ export const metricsSchema = z.object({
   source_sha256: z.string().nullable(),
   versions: z.record(z.string(), z.string()),
   residuals_available: z.boolean(),
+  validation_rows: z.number().nullable().optional(),
+  validation_metrics: z
+    .object({ mae: z.number(), rmse: z.number(), r2: z.number() })
+    .nullable()
+    .optional(),
+  split_method: z.string().nullable().optional(),
+  source_revision: z.string().nullable().optional(),
 });
 export const predictionSchema = z.object({
   predicted_price: z.number(),
@@ -118,6 +154,7 @@ export const predictionInputSchema = z
       .min(1)
       .max(80)
       .regex(/^[a-z0-9-]+$/, "Use a lowercase city slug"),
+    neighborhood_slug: z.string().max(100).nullable().optional(),
     cat3_slug: z.enum(["apartment-sell", "house-villa-sell"]),
     building_size: z.number().positive().max(10000),
     rooms_count: z.number().int().min(0).max(20),
@@ -148,7 +185,35 @@ export type Filters = {
   year_min?: string;
   year_max?: string;
   search?: string;
+  neighborhood?: string;
+  bedrooms_min?: string;
+  bedrooms_max?: string;
 };
+export const facetsSchema = z.object({
+  cities: z.array(z.string()),
+  neighborhoods: z.array(z.string()),
+  provenance: provenanceSchema,
+  coverage: coverageSchema,
+});
+export const valuationSchema = z.object({
+  model: modelSchema,
+  prediction: predictionSchema.nullable(),
+  provenance: provenanceSchema,
+  coverage: coverageSchema,
+  comparables: z.array(
+    z.object({
+      property: propertySchema,
+      similarity_score: z.number(),
+      reasons: z.array(z.string()),
+    }),
+  ),
+  comparable_median_price: z.number().nullable(),
+  comparable_median_price_per_sqm: z.number().nullable(),
+  prediction_vs_comparable_percent: z.number().nullable(),
+  limitations: z.array(z.string()),
+  label: z.string(),
+});
+export type Provenance = z.infer<typeof provenanceSchema>;
 export function queryString(filters: Filters) {
   return new URLSearchParams(
     Object.entries(filters).filter(([, v]) => v !== undefined && v !== "") as [

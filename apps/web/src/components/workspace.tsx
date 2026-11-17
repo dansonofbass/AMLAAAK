@@ -10,6 +10,7 @@ import {
   citySchema,
   distributionsSchema,
   type Filters,
+  facetsSchema,
 } from "@/lib/contracts";
 import { z } from "zod";
 import { queryString } from "@/lib/contracts";
@@ -57,4 +58,14 @@ export function useAnalytics() {
     queryFn: () => api(`analytics/distributions?${query}`, distributionsSchema),
   });
   return { summary, cities, distributions };
+}
+export function useFacets(city?: string) {
+  return useQuery({
+    queryKey: ["facets", city || ""],
+    queryFn: () =>
+      api(
+        `data/facets${city ? `?city=${encodeURIComponent(city)}` : ""}`,
+        facetsSchema,
+      ),
+  });
 }

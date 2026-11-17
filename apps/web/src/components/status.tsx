@@ -6,6 +6,11 @@ export function LoadingState() {
       <LoaderCircle className="loading-icon" size={24} />
       <h2>Reading your workspace</h2>
       <p>Fetching analytics from the API.</p>
+      <div className="loading-skeletons" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
     </div>
   );
 }

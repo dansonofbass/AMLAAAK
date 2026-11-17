@@ -28,6 +28,7 @@ import { FiltersBar } from "./filters";
 import { Button } from "./ui/button";
 import { LoadingState, ErrorState, EmptyState } from "./status";
 import { compact } from "@/lib/utils";
+import { CoverageNotice } from "./coverage";
 const IranMap = dynamic(() => import("./iran-map"), {
   ssr: false,
   loading: () => <div className="map-loading">Loading geographic canvas…</div>,
@@ -84,10 +85,11 @@ export function Dashboard({ analytics = false }: { analytics?: boolean }) {
           <span />
           {data.provenance.kind === "illustrative"
             ? "ILLUSTRATIVE SAMPLE"
-            : "PREPARED SNAPSHOT"}
+            : "HISTORICAL DATA WINDOW"}
         </span>
       </div>
       <FiltersBar detailed={analytics} />
+      <CoverageNotice provenance={data.provenance} />
       <div className="kpi-grid">
         {[
           {
@@ -141,7 +143,7 @@ export function Dashboard({ analytics = false }: { analytics?: boolean }) {
               <span>
                 <Compass size={13} />
                 Geographic explorer{" "}
-                <span className="map-level">IRAN / CITY LEVEL</span>
+                <span className="map-level">IRAN / PROVINCES + CITIES</span>
               </span>
               <div>
                 <Button
@@ -255,7 +257,7 @@ export function Dashboard({ analytics = false }: { analytics?: boolean }) {
                 <br />
                 City centers, not property locations.
                 <br />
-                Country fill is geographic context.
+                ADM1 outlines are provinces, not city boundaries.
               </p>
               <span className="north-label">N ↑</span>
             </div>

@@ -10,6 +10,8 @@ import {
   Database,
   MapPin,
 } from "lucide-react";
+import { Picker } from "./ui/picker";
+import { CoverageNotice } from "./coverage";
 import { api } from "@/lib/api";
 import {
   propertyPageSchema,
@@ -84,28 +86,30 @@ function PropertyTable() {
         <span>
           {summary.data?.provenance.kind === "illustrative"
             ? "Illustrative fixture · not live advertisements"
-            : "Prepared source snapshot"}
+            : "Retrieved historical records"}
         </span>
       </div>
+      {data.provenance && <CoverageNotice provenance={data.provenance} />}
       <section className="table-panel">
         <div className="table-toolbar">
           <h2>Residential sales</h2>
           <div>
             <label>
               Sort by
-              <select
-                aria-label="Sort properties"
+              <Picker
+                label="Sort properties"
                 value={sort}
-                onChange={(e) => {
-                  setSort(e.target.value);
+                onChange={(value) => {
+                  setSort(value);
                   setPage(1);
                 }}
-              >
-                <option value="price_value">Asking price</option>
-                <option value="price_per_sqm">Price / m²</option>
-                <option value="building_size">Area</option>
-                <option value="city_slug">City</option>
-              </select>
+                options={[
+                  { value: "price_value", label: "Asking price" },
+                  { value: "price_per_sqm", label: "Price / m2" },
+                  { value: "building_size", label: "Area" },
+                  { value: "city_slug", label: "City" },
+                ]}
+              />
             </label>
             <Button
               variant="ghost"
@@ -191,18 +195,18 @@ function PropertyTable() {
         <div className="table-pagination">
           <label>
             Rows
-            <select
-              aria-label="Rows per page"
-              value={size}
-              onChange={(e) => {
-                setSize(Number(e.target.value));
+            <Picker
+              label="Rows per page"
+              value={String(size)}
+              onChange={(value) => {
+                setSize(Number(value));
                 setPage(1);
               }}
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-            </select>
+              options={[5, 10, 25].map((v) => ({
+                value: String(v),
+                label: String(v),
+              }))}
+            />
           </label>
           <span>
             {data.total
@@ -251,7 +255,7 @@ function PropertyTable() {
               <span className="dataset-badge sample">
                 {summary.data?.provenance.kind === "illustrative"
                   ? "ILLUSTRATIVE RECORD"
-                  : "SNAPSHOT RECORD"}
+                  : "HISTORICAL RECORD"}
               </span>
               <dl className="detail-fields">
                 {Object.entries(detail.data).map(([key, value]) => (

@@ -8,6 +8,8 @@ const allowed = new Set([
   "properties",
   "model/metrics",
   "predict",
+  "valuation",
+  "data/facets",
 ]);
 async function proxy(
   request: NextRequest,
@@ -20,12 +22,12 @@ async function proxy(
       { error: { code: "not_found", message: "Unknown API route" } },
       { status: 404 },
     );
-  if (request.method === "POST" && route !== "predict")
+  if (request.method === "POST" && !["predict", "valuation"].includes(route))
     return NextResponse.json(
       { error: { code: "method_not_allowed", message: "Method not allowed" } },
       { status: 405 },
     );
-  if (request.method === "GET" && route === "predict")
+  if (request.method === "GET" && ["predict", "valuation"].includes(route))
     return NextResponse.json(
       {
         error: {
@@ -67,14 +69,24 @@ async function proxy(
         headers,
         cache: "no-store",
         redirect: "error",
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(28000),
       },
     );
     if (!response.headers.get("content-type")?.includes("application/json"))
       throw new Error("Backend did not return JSON");
+    const safeHeaders = new Headers({ "Cache-Control": "no-store" });
+    for (const name of [
+      "X-Request-ID",
+      "X-Dataset-Revision",
+      "X-Records-Examined",
+      "X-Coverage-Exhaustive",
+    ]) {
+      const value = response.headers.get(name);
+      if (value) safeHeaders.set(name, value);
+    }
     return NextResponse.json(await response.json(), {
       status: response.status,
-      headers: { "Cache-Control": "no-store" },
+      headers: safeHeaders,
     });
   } catch {
     return NextResponse.json(

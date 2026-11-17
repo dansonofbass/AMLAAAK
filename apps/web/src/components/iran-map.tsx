@@ -7,11 +7,13 @@ import {
   Tooltip,
   ZoomControl,
   useMap,
+  Popup,
 } from "react-leaflet";
 import type { FeatureCollection } from "geojson";
 import type { City } from "@/lib/contracts";
 import { compact, title } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
+import { containsPoint } from "@/lib/geography";
 
 function markerColor(count: number, min: number, max: number) {
   const ratio = (count - min) / Math.max(1, max - min);
@@ -60,6 +62,7 @@ export default function IranMap({
 }) {
   const [geometry, setGeometry] = useState<FeatureCollection | null>(null);
   const [error, setError] = useState(false);
+  const [provinces, setProvinces] = useState<FeatureCollection | null>(null);
   const mappedCities = cities.filter(
     (c) => c.latitude !== null && c.longitude !== null,
   );
@@ -72,6 +75,15 @@ export default function IranMap({
         return r.json();
       })
       .then(setGeometry)
+      .catch(() => setError(true));
+  }, []);
+  useEffect(() => {
+    fetch("/iran-provinces.geojson")
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(setProvinces)
       .catch(() => setError(true));
   }, []);
   return (
@@ -102,6 +114,84 @@ export default function IranMap({
             attribution='<a href="https://www.naturalearthdata.com/">Natural Earth</a> · City centers only'
           />
         )}
+        {provinces?.features.map((feature) => {
+          const inside = mappedCities.filter((c) =>
+            containsPoint(feature, c.longitude!, c.latitude!),
+          );
+          const selectedInside = inside.some((c) => c.city === selected);
+          const name = String(
+            feature.properties?.shapeName || "Unnamed administrative area",
+          );
+          return (
+            <GeoJSON
+              key={`${feature.properties?.shapeID}-${selectedInside}`}
+              data={feature}
+              style={{
+                color: selectedInside ? "#b6a4ff" : "#648b9b",
+                weight: selectedInside ? 2.5 : 0.8,
+                fillColor: selectedInside ? "#7867b9" : "#28616e",
+                fillOpacity: selectedInside ? 0.42 : 0.14,
+                className: `province-boundary ${selectedInside ? "province-selected" : ""}`,
+              }}
+              eventHandlers={{
+                click: () => {
+                  if (inside.length === 1) onSelect(inside[0].city);
+                },
+              }}
+              onEachFeature={(_, layer) => {
+                layer.on("add", () => {
+                  const element = (
+                    layer as unknown as { getElement: () => SVGElement }
+                  ).getElement?.();
+                  if (element) {
+                    element.setAttribute("data-province", name);
+                    element.setAttribute("aria-label", `${name} province`);
+                    element.setAttribute("tabindex", "0");
+                    element.setAttribute("role", "button");
+                    element.addEventListener("keydown", (event) => {
+                      if (event.key === "Enter" && inside.length === 1)
+                        onSelect(inside[0].city);
+                    });
+                  }
+                });
+              }}
+              attribution='<a href="https://www.geoboundaries.org/">geoBoundaries</a> · OSM / ODbL · ADM1 provinces (2017)'
+            >
+              <Tooltip direction="top" sticky>
+                <strong>{name} · province (ADM1)</strong>
+                <br />
+                {inside.length
+                  ? inside
+                      .map(
+                        (c) => `${title(c.city)}: ${c.count} retrieved sales`,
+                      )
+                      .join(" · ")
+                  : "No mapped-city records in current selection"}
+                <br />
+                <small>
+                  Only represented city counts, not province-wide totals.
+                </small>
+              </Tooltip>
+              <Popup>
+                <strong>{name} province</strong>
+                <p>Choose a represented city:</p>
+                {inside.length ? (
+                  inside.map((c) => (
+                    <button
+                      className="province-city-choice"
+                      key={c.city}
+                      onClick={() => onSelect(c.city)}
+                    >
+                      {title(c.city)} · {c.count} retrieved records
+                    </button>
+                  ))
+                ) : (
+                  <span>No mapped city candidates in this window.</span>
+                )}
+              </Popup>
+            </GeoJSON>
+          );
+        })}
         {mappedCities.map((city, i) => (
           <CircleMarker
             key={city.city}

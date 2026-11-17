@@ -17,14 +17,21 @@ import { api } from "@/lib/api";
 import {
   modelSchema,
   predictionInputSchema,
-  predictionSchema,
+  valuationSchema,
   type PredictionInput,
 } from "@/lib/contracts";
-import { useAnalytics } from "./workspace";
+import { useAnalytics, useFacets } from "./workspace";
+import { Picker } from "./ui/picker";
+import { ComparableResults } from "./comparables";
 import { Button } from "./ui/button";
 import { compact, title } from "@/lib/utils";
 export function PredictionPage() {
   const { summary } = useAnalytics();
+  const [city, setCity] = useState("tehran");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [propertyType, setPropertyType] = useState("apartment-sell");
+  const allFacets = useFacets();
+  const cityFacets = useFacets(city);
   const status = useQuery({
     queryKey: ["model-status"],
     queryFn: () => api("model/status", modelSchema),
@@ -33,7 +40,7 @@ export function PredictionPage() {
   const [dirty, setDirty] = useState(false);
   const mutation = useMutation({
     mutationFn: (body: PredictionInput) =>
-      api("predict", predictionSchema, {
+      api("valuation", valuationSchema, {
         method: "POST",
         body: JSON.stringify(body),
       }),
@@ -42,8 +49,9 @@ export function PredictionPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const input = {
-      city_slug: String(form.get("city_slug") || ""),
-      cat3_slug: String(form.get("cat3_slug") || ""),
+      city_slug: city,
+      neighborhood_slug: neighborhood || null,
+      cat3_slug: propertyType,
       ...Object.fromEntries(
         [
           "building_size",
@@ -75,7 +83,7 @@ export function PredictionPage() {
     setDirty(false);
     mutation.mutate(parsed.data);
   };
-  const result = mutation.data;
+  const result = mutation.data?.prediction;
   return (
     <>
       <div className="page-heading">
@@ -84,7 +92,10 @@ export function PredictionPage() {
           <h1>
             Price prediction<span className="heading-period">.</span>
           </h1>
-          <p>A transparent Random Forest baseline. No invented certainty.</p>
+          <p>
+            Model valuation and explainable historical comparables, side by
+            side.
+          </p>
         </div>
         <span className="dataset-badge sample">
           <FlaskConical size={12} />
@@ -134,22 +145,26 @@ export function PredictionPage() {
           </div>
           <div className="form-grid">
             <label>
-              City slug
-              <input
+              City *
+              <Picker
+                searchable
                 name="city_slug"
-                list="city-options"
-                defaultValue="tehran"
-                placeholder="e.g. tehran"
-                aria-invalid={!!errors.city_slug}
-                aria-describedby="city-help"
+                label="Property city"
+                value={city}
+                onChange={(value) => {
+                  setCity(value);
+                  setNeighborhood("");
+                  setDirty(true);
+                }}
+                options={Array.from(
+                  new Set([
+                    city,
+                    ...(allFacets.data?.cities ||
+                      summary.data?.available_cities ||
+                      []),
+                  ]),
+                ).map((c) => ({ value: c, label: title(c) }))}
               />
-              <datalist id="city-options">
-                {summary.data?.available_cities.map((c) => (
-                  <option key={c} value={c}>
-                    {title(c)}
-                  </option>
-                ))}
-              </datalist>
               <small id="city-help">
                 Use the source city slug. Unseen cities have no learned city
                 effect.
@@ -159,11 +174,41 @@ export function PredictionPage() {
               )}
             </label>
             <label>
-              Property type
-              <select name="cat3_slug">
-                <option value="apartment-sell">Apartment</option>
-                <option value="house-villa-sell">House / villa</option>
-              </select>
+              Property type *
+              <Picker
+                name="cat3_slug"
+                label="Property type"
+                value={propertyType}
+                onChange={(value) => {
+                  setPropertyType(value);
+                  setDirty(true);
+                }}
+                options={[
+                  { value: "apartment-sell", label: "Apartment" },
+                  { value: "house-villa-sell", label: "House / villa" },
+                ]}
+              />
+            </label>
+            <label>
+              Neighborhood{" "}
+              <small>Optional, within retrieved city records</small>
+              <Picker
+                searchable
+                name="neighborhood_slug"
+                label="Property neighborhood"
+                value={neighborhood}
+                onChange={(value) => {
+                  setNeighborhood(value);
+                  setDirty(true);
+                }}
+                options={[
+                  { value: "", label: "Any / unknown neighborhood" },
+                  ...(cityFacets.data?.neighborhoods || []).map((n) => ({
+                    value: n,
+                    label: title(n),
+                  })),
+                ]}
+              />
             </label>
             {[
               {
@@ -177,7 +222,7 @@ export function PredictionPage() {
               },
               {
                 name: "rooms_count",
-                label: "Rooms",
+                label: "Bedrooms",
                 unit: "rooms",
                 value: 2,
                 min: 0,
@@ -209,7 +254,7 @@ export function PredictionPage() {
               },
             ].map((field) => (
               <label key={field.name}>
-                {field.label}
+                {field.label} *
                 <div className="input-with-unit">
                   <input
                     name={field.name}
@@ -255,7 +300,7 @@ export function PredictionPage() {
           </div>
           <Button
             type="submit"
-            disabled={!status.data?.available || mutation.isPending}
+            disabled={mutation.isPending}
             className="predict-button"
           >
             {mutation.isPending ? (
@@ -334,7 +379,7 @@ export function PredictionPage() {
               <p>
                 {status.data?.available
                   ? "Set the property features and run an estimate. Results are returned by the Python model."
-                  : "Analytics work without a model. Configure a trusted artifact bundle to enable real inference."}
+                  : "Comparable search works without a model. Configure a trusted artifact bundle to add an ML estimate."}
               </p>
               <span className="empty-price">
                 — <small>source units</small>
@@ -359,6 +404,7 @@ export function PredictionPage() {
           </div>
         </div>
       </div>
+      {mutation.data && <ComparableResults data={mutation.data} />}
     </>
   );
 }
