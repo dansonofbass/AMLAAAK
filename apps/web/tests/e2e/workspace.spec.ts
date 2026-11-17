@@ -13,7 +13,10 @@ test("overview uses live API aggregates and coordinated filters", async ({
     "8",
   );
   await expect(page.locator(".leaflet-container")).toBeVisible();
-  await page.getByLabel("Selected city").selectOption("tehran");
+  await page
+    .getByRole("combobox", { name: "Selected city", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Tehran", exact: true }).click();
   await expect(page.locator(".kpi-card").first().locator("strong")).toHaveText(
     "5",
   );
@@ -52,7 +55,10 @@ test("properties paginate sort and open accessible details", async ({
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(page.locator("tbody tr")).toHaveCount(3);
   await page.getByRole("button", { name: "Previous page" }).click();
-  await page.getByLabel("Sort properties").selectOption("building_size");
+  await page
+    .getByRole("combobox", { name: "Sort properties", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Area", exact: true }).click();
   await page.locator(".detail-link").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("ILLUSTRATIVE RECORD");
@@ -67,12 +73,6 @@ test("prediction validates inputs and calls the Python model when available", as
 }) => {
   const status = await (await request.get("/api/v1/model/status")).json();
   await page.goto("/predict");
-  if (!status.available) {
-    await expect(
-      page.getByRole("button", { name: "Estimate asking price" }),
-    ).toBeDisabled();
-    return;
-  }
   await page.locator("[name=building_size]").fill("0");
   await page.getByRole("button", { name: "Estimate asking price" }).click();
   await expect(page.locator(".page-content [role=alert]")).toContainText(
@@ -81,12 +81,18 @@ test("prediction validates inputs and calls the Python model when available", as
   await page.locator("[name=building_size]").fill("90");
   const response = page.waitForResponse(
     (r) =>
-      r.url().endsWith("/api/v1/predict") && r.request().method() === "POST",
+      r.url().endsWith("/api/v1/valuation") && r.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Estimate asking price" }).click();
   expect((await response).status()).toBe(200);
-  await expect(page.locator(".prediction-number")).toBeVisible();
-  await expect(page.getByText("DEMO:", { exact: false })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Comparable property results" }),
+  ).toBeVisible();
+  if (status.available) {
+    await expect(page.locator(".prediction-number")).toBeVisible();
+    if (status.mode === "illustrative")
+      await expect(page.getByText("DEMO:", { exact: false })).toBeVisible();
+  }
   await page.screenshot({
     path: "test-results/prediction-desktop.png",
     fullPage: true,
