@@ -106,6 +106,12 @@ test("market analytics applies numeric filters and resets", async ({
     page.getByRole("heading", { name: "Market analytics." }),
   ).toBeVisible();
   await page.getByLabel("area min").fill("200");
+  await page.getByLabel("area max").fill("100");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page.locator(".advanced-filters [role=alert]")).toContainText(
+    "minimum cannot exceed maximum",
+  );
+  await page.getByLabel("area max").fill("");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.locator(".kpi-card").first().locator("strong")).toHaveText(
     "2",

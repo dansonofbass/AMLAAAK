@@ -245,7 +245,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                         <button
                           key={city.city}
                           onClick={() =>
-                            setFilters({ ...filters, city: city.city })
+                            setFilters({
+                              ...filters,
+                              city: city.city,
+                              neighborhood: undefined,
+                            })
                           }
                         >
                           <span>{title(city.city)}</span>

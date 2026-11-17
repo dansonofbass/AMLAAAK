@@ -72,7 +72,13 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
         {filters.city && (
           <button
             className="filter-chip"
-            onClick={() => setFilters({ ...filters, city: undefined })}
+            onClick={() =>
+              setFilters({
+                ...filters,
+                city: undefined,
+                neighborhood: undefined,
+              })
+            }
           >
             {title(filters.city)} <X size={11} />
           </button>
@@ -110,16 +116,18 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
           className="advanced-filters"
           onSubmit={(e) => {
             e.preventDefault();
+            const next = { ...filters, ...draft };
             for (const field of ["area", "price", "year", "bedrooms"]) {
-              const low = draft[`${field}_min` as keyof Filters],
-                high = draft[`${field}_max` as keyof Filters];
+              const low = next[`${field}_min` as keyof Filters],
+                high = next[`${field}_max` as keyof Filters];
               if (low && high && Number(low) > Number(high)) {
                 setError(`${title(field)} minimum cannot exceed maximum`);
                 return;
               }
             }
             setError("");
-            setFilters({ ...filters, ...draft });
+            setFilters(next);
+            setDraft({});
           }}
         >
           {(["area", "price", "year", "bedrooms"] as const).map((field) => (
@@ -142,7 +150,11 @@ export function FiltersBar({ detailed = false }: { detailed?: boolean }) {
                   min={field === "year" ? 1200 : 0}
                   max={field === "year" ? 1500 : undefined}
                   step={field === "year" ? 1 : "any"}
-                  value={draft[`${field}_${bound}`] || ""}
+                  value={
+                    draft[`${field}_${bound}`] ??
+                    filters[`${field}_${bound}`] ??
+                    ""
+                  }
                   onChange={(e) =>
                     setDraft({
                       ...draft,

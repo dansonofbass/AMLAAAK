@@ -57,7 +57,11 @@ export function Dashboard({ analytics = false }: { analytics?: boolean }) {
     );
   if (!data || !dist || !cities.data) return <LoadingState />;
   const onCity = (city: string) =>
-    setFilters({ ...filters, city: filters.city === city ? undefined : city });
+    setFilters({
+      ...filters,
+      city: filters.city === city ? undefined : city,
+      neighborhood: undefined,
+    });
   const onType = (property_type: string) =>
     setFilters({
       ...filters,
