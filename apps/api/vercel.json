@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "env": {
+    "AMLAAAK_PREPARED_DATA_REPO": "thevel0per/AMLAAAK-Real-Estate-Data",
+    "AMLAAAK_PREPARED_DATA_REVISION": "8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a",
+    "AMLAAAK_PREPARED_DATA_MANIFEST_SHA256": "3f4dff6cd149c10c579371a8d33a151b64c72e11fa9aed00b132892198d72048",
     "HF_MAX_RECORDS": "300",
     "AMLAAAK_MODEL_REPO": "thevel0per/AMLAAAK-Price-Predictor",
     "AMLAAAK_MODEL_REVISION": "89de24728daecdec3731e07475ab985c1efa87ad",

@@ -1,0 +1,9 @@
+{
+  "repo": "thevel0per/AMLAAAK-Real-Estate-Data",
+  "revision": "8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a",
+  "manifest_sha256": "3f4dff6cd149c10c579371a8d33a151b64c72e11fa9aed00b132892198d72048",
+  "expected_source_rows": 1000000,
+  "expected_prepared_rows": 420813,
+  "expected_cities": 417,
+  "expected_indexed_files": 5201
+}
