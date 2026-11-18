@@ -199,20 +199,6 @@ export function ModelPerformance() {
           </code>
         </section>
         <details className="panel panel-body">
-          <summary>{t("Original model training sample", "نمونه آموزشی مدل فعلی")}</summary>
-          <p className="small-note">
-            {t(
-              "This separate model was trained on a limited historical subset, not on every record in the searchable archive.",
-              "مدل فعلی روی نمونه تاریخی محدودی آموزش دیده، نه تمام رکوردهای آرشیو قابل جستجو.",
-            )}
-          </p>
-          <p className="small-note">
-            {t("Training", "آموزش")}: {n(m.train_rows)} ·{" "}
-            {t("Validation", "اعتبارسنجی")}: {n(m.validation_rows)} ·{" "}
-            {t("Test", "آزمون")}: {n(m.test_rows)}
-          </p>
-        </details>
-        <details className="panel panel-body">
           <summary>
             {t("Feature and runtime metadata", "ویژگی‌ها و فراداده اجرا")}
           </summary>
