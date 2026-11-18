@@ -45,15 +45,25 @@ test.describe("live Hugging Face integration", () => {
     expect(facets.neighborhoods.length).toBeGreaterThan(0);
     await page.goto("/predict");
     await page
+      .getByRole("combobox", { name: "Property city", exact: true })
+      .click();
+    await page.getByRole("option", { name: "Tehran", exact: true }).click();
+    await page.locator("[name=building_size]").fill("90");
+    await page
+      .getByRole("combobox", { name: "Number of Bedrooms", exact: true })
+      .click();
+    await page.getByRole("option", { name: "2", exact: true }).click();
+
+    await page
       .getByRole("combobox", { name: "Property neighborhood", exact: true })
       .click();
     const option = page.getByRole("option").nth(1);
     await expect(option).toBeVisible();
     await option.click();
-    await page.getByRole("button", { name: "Estimate asking price" }).click();
+    await page.getByRole("button", { name: "Estimate Property Value" }).click();
     await expect(page.locator(".comparable-card")).toHaveCount(8);
     await expect(
-      page.getByText("Genuine Divar source record").first(),
+      page.getByRole("heading", { name: "Comparable Properties", exact: true }),
     ).toBeVisible();
     await expect(page.locator(".prediction-number")).toBeVisible();
     await expect(
