@@ -1,17 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import {
+  Calculator,
   ArrowRight,
-  Building2,
-  Check,
-  CircleAlert,
-  FlaskConical,
-  Info,
-  Layers3,
   LoaderCircle,
-  ShieldCheck,
-  Sparkles,
+  Info,
+  Check,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -20,24 +16,51 @@ import {
   valuationSchema,
   type PredictionInput,
 } from "@/lib/contracts";
-import { useAnalytics, useFacets } from "./workspace";
+import { useFacets } from "./workspace";
+import { useLanguage, parseNumber } from "./language";
 import { Picker } from "./ui/picker";
-import { ComparableResults } from "./comparables";
 import { Button } from "./ui/button";
-import { compact, title } from "@/lib/utils";
+import { CoverageNotice } from "./coverage";
+import { ComparableResults, type ValuationResult } from "./comparables";
+type Fields = {
+  city_slug: string;
+  neighborhood_slug: string;
+  cat3_slug: string;
+  building_size: string;
+  rooms_count: string;
+  construction_year: string;
+  floor: string;
+  total_floors_count: string;
+  has_parking: string;
+  has_elevator: string;
+  has_balcony: string;
+  has_warehouse: string;
+};
+const initial: Fields = {
+  city_slug: "",
+  neighborhood_slug: "",
+  cat3_slug: "apartment-sell",
+  building_size: "",
+  rooms_count: "",
+  construction_year: "",
+  floor: "",
+  total_floors_count: "",
+  has_parking: "",
+  has_elevator: "",
+  has_balcony: "",
+  has_warehouse: "",
+};
 export function PredictionPage() {
-  const { summary } = useAnalytics();
-  const [city, setCity] = useState("tehran");
-  const [neighborhood, setNeighborhood] = useState("");
-  const [propertyType, setPropertyType] = useState("apartment-sell");
-  const allFacets = useFacets();
-  const cityFacets = useFacets(city);
+  const { t, n, city } = useLanguage();
+  const [fields, setFields] = useState<Fields>(initial),
+    [asking, setAsking] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const all = useFacets(),
+    local = useFacets(fields.city_slug || undefined);
   const status = useQuery({
     queryKey: ["model-status"],
     queryFn: () => api("model/status", modelSchema),
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [dirty, setDirty] = useState(false);
   const mutation = useMutation({
     mutationFn: (body: PredictionInput) =>
       api("valuation", valuationSchema, {
@@ -45,366 +68,549 @@ export function PredictionPage() {
         body: JSON.stringify(body),
       }),
   });
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const input = {
-      city_slug: city,
-      neighborhood_slug: neighborhood || null,
-      cat3_slug: propertyType,
-      ...Object.fromEntries(
-        [
-          "building_size",
-          "rooms_count",
-          "floor",
-          "total_floors_count",
-          "construction_year",
-        ].map((k) => [k, form.get(k) === "" ? NaN : Number(form.get(k))]),
-      ),
-      ...Object.fromEntries(
-        ["has_parking", "has_elevator", "has_balcony", "has_warehouse"].map(
-          (k) => [k, form.get(k) === "on"],
-        ),
-      ),
-    };
-    const parsed = predictionInputSchema.safeParse(input);
-    if (!parsed.success) {
-      setErrors(
-        Object.fromEntries(
-          parsed.error.issues.map((issue) => [
-            String(issue.path[0]),
-            issue.message,
-          ]),
-        ),
-      );
-      return;
-    }
+  function update(key: keyof Fields, value: string) {
+    setFields((old) => ({
+      ...old,
+      [key]: value,
+      ...(key === "city_slug" ? { neighborhood_slug: "" } : {}),
+    }));
     setErrors({});
-    setDirty(false);
-    mutation.mutate(parsed.data);
-  };
-  const result = mutation.data?.prediction;
+    mutation.reset();
+  }
+  const optional = (value: string) =>
+    value.trim() === "" ? null : parseNumber(value);
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const result = predictionInputSchema.safeParse({
+      city_slug: fields.city_slug,
+      neighborhood_slug: fields.neighborhood_slug || null,
+      cat3_slug: fields.cat3_slug,
+      building_size: fields.building_size.trim()
+        ? parseNumber(fields.building_size)
+        : NaN,
+      rooms_count:
+        fields.rooms_count !== "" ? parseNumber(fields.rooms_count) : NaN,
+      floor: optional(fields.floor),
+      total_floors_count: optional(fields.total_floors_count),
+      construction_year: optional(fields.construction_year),
+      has_parking:
+        fields.has_parking === "" ? null : fields.has_parking === "yes",
+      has_elevator:
+        fields.has_elevator === "" ? null : fields.has_elevator === "yes",
+      has_balcony:
+        fields.has_balcony === "" ? null : fields.has_balcony === "yes",
+      has_warehouse:
+        fields.has_warehouse === "" ? null : fields.has_warehouse === "yes",
+    });
+    const next: Record<string, string> = {};
+    if (!result.success)
+      for (const issue of result.error.issues)
+        next[String(issue.path[0])] = t(
+          "Check this value and the supported range.",
+          "این مقدار و بازه مجاز را بررسی کنید.",
+        );
+    if (
+      asking.trim() &&
+      (!Number.isFinite(parseNumber(asking)) || parseNumber(asking) <= 0)
+    )
+      next.asking = t(
+        "Enter a positive asking price.",
+        "قیمت پیشنهادی باید عددی مثبت باشد.",
+      );
+    setErrors(next);
+    if (result.success && !Object.keys(next).length)
+      mutation.mutate(result.data);
+  }
+  const error = (key: string) =>
+    errors[key] ? <small className="field-error">{errors[key]}</small> : null;
+  const options = [
+    { value: "", label: t("Unknown", "نامشخص") },
+    { value: "yes", label: t("Yes", "بله") },
+    { value: "no", label: t("No", "خیر") },
+  ];
   return (
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">FROM PROPERTY FEATURES TO AN ESTIMATE</span>
-          <h1>
-            Price prediction<span className="heading-period">.</span>
-          </h1>
+          <span className="eyebrow">
+            {t(
+              "A HISTORICAL PERSPECTIVE ON YOUR PROPERTY",
+              "نگاهی تاریخی به ملک شما",
+            )}
+          </span>
+          <h1>{t("Price Estimator", "برآورد قیمت ملک")}</h1>
           <p>
-            Model valuation and explainable historical comparables, side by
-            side.
+            {t(
+              "Start with a few details. Compare a research estimate with actual historical asking prices.",
+              "با چند مشخصه شروع کنید. برآورد پژوهشی مدل را با قیمت‌های پیشنهادی واقعی گذشته مقایسه کنید.",
+            )}
           </p>
         </div>
-        <span className="dataset-badge sample">
-          <FlaskConical size={12} />
-          RESEARCH PROTOTYPE
+        <span className="badge">
+          <Info size={13} />
+          {status.data?.mode === "illustrative"
+            ? t("Illustrative test model", "مدل نمایشی آزمون")
+            : t("Research estimate", "برآورد پژوهشی")}
         </span>
       </div>
-      <div
-        className={`model-notice ${status.data?.available ? "" : "unavailable"}`}
-      >
-        <Info size={17} />
-        <div>
-          <strong>
-            {status.data?.available
-              ? status.data.mode === "illustrative"
-                ? "Illustrative model connected"
-                : "Trained model connected"
-              : "Model unavailable"}
-          </strong>
-          <p>
-            {status.error?.message ||
-              status.data?.message ||
-              "Checking model status…"}
+      <div className="estimator-layout">
+        <form
+          className="form-panel"
+          onSubmit={submit}
+          noValidate
+          aria-busy={mutation.isPending}
+        >
+          <fieldset
+            disabled={mutation.isPending}
+            style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
+          >
+            <div className="form-intro">
+              <span className="step-number">01</span>
+              <div>
+                <h2>{t("Essential property details", "مشخصات اصلی ملک")}</h2>
+                <p>
+                  {t(
+                    "Required fields are marked *.",
+                    "فیلدهای ضروری با * مشخص شده‌اند.",
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="field-grid">
+              <label className="field">
+                <span>{t("City", "شهر")} *</span>
+                <Picker
+                  searchable
+                  name="city_slug"
+                  label={t("Property city", "شهر ملک")}
+                  value={fields.city_slug}
+                  disabled={all.isPending || all.isError}
+                  onChange={(v) => update("city_slug", v)}
+                  options={[
+                    {
+                      value: "",
+                      label: all.isPending
+                        ? t("Loading cities…", "دریافت شهرها…")
+                        : t("Choose a city", "انتخاب شهر"),
+                    },
+                    ...(all.data?.cities || []).map((c) => ({
+                      value: c,
+                      label: city(c),
+                    })),
+                  ]}
+                />
+                {error("city_slug")}
+              </label>
+              <label className="field">
+                <span>{t("Neighborhood", "محله")}</span>
+                <Picker
+                  searchable
+                  name="neighborhood_slug"
+                  label={t("Property neighborhood", "محله ملک")}
+                  disabled={!fields.city_slug || local.isPending}
+                  value={fields.neighborhood_slug}
+                  onChange={(v) => update("neighborhood_slug", v)}
+                  options={[
+                    { value: "", label: t("Any / unknown", "همه / نامشخص") },
+                    ...(local.data?.neighborhoods || []).map((c) => ({
+                      value: c,
+                      label: city(c),
+                    })),
+                  ]}
+                />
+              </label>
+              <label className="field field-wide">
+                <span>{t("Property type", "نوع ملک")} *</span>
+                <Picker
+                  name="cat3_slug"
+                  label={t("Property type", "نوع ملک")}
+                  value={fields.cat3_slug}
+                  onChange={(v) => update("cat3_slug", v)}
+                  options={[
+                    {
+                      value: "apartment-sell",
+                      label: t("Apartment", "آپارتمان"),
+                    },
+                    {
+                      value: "house-villa-sell",
+                      label: t("House / Villa", "خانه / ویلا"),
+                    },
+                  ]}
+                />
+              </label>
+              <label className="field">
+                <span>{t("Building Area (m²)", "مساحت بنا (مترمربع)")} *</span>
+                <input
+                  name="building_size"
+                  aria-required="true"
+                  aria-invalid={!!errors.building_size}
+                  inputMode="decimal"
+                  placeholder={t("e.g. 90", "مثلاً ۹۰")}
+                  value={fields.building_size}
+                  onChange={(e) => update("building_size", e.target.value)}
+                />
+                <small className="field-hint">
+                  {t(
+                    "Greater than 0, up to 10,000 m²",
+                    "بیشتر از صفر تا ۱۰٬۰۰۰ مترمربع",
+                  )}
+                </small>
+                {error("building_size")}
+              </label>
+              <label className="field">
+                <span>{t("Number of Bedrooms", "تعداد اتاق‌خواب")} *</span>
+                <Picker
+                  name="rooms_count"
+                  label={t("Number of Bedrooms", "تعداد اتاق‌خواب")}
+                  value={fields.rooms_count}
+                  onChange={(v) => update("rooms_count", v)}
+                  options={[
+                    { value: "", label: t("Choose", "انتخاب کنید") },
+                    ...Array.from({ length: 21 }, (_, i) => ({
+                      value: String(i),
+                      label: i === 0 ? t("Studio / 0", "بدون اتاق / ۰") : n(i),
+                    })),
+                  ]}
+                />
+                {error("rooms_count")}
+              </label>
+            </div>
+            <details className="advanced-details">
+              <summary>
+                {t("Additional Property Details", "جزئیات بیشتر ملک")}
+              </summary>
+              <div className="field-grid">
+                {(
+                  [
+                    {
+                      key: "construction_year",
+                      label: t(
+                        "Construction year (Solar Hijri)",
+                        "سال ساخت (هجری شمسی)",
+                      ),
+                    },
+                    { key: "floor", label: t("Floor", "طبقه") },
+                    {
+                      key: "total_floors_count",
+                      label: t("Total floors", "تعداد طبقات"),
+                    },
+                  ] as const
+                ).map((f) => (
+                  <label className="field" key={f.key}>
+                    <span>{f.label}</span>
+                    <input
+                      name={f.key}
+                      inputMode="numeric"
+                      value={fields[f.key]}
+                      placeholder={t("Unknown", "نامشخص")}
+                      onChange={(e) => update(f.key, e.target.value)}
+                    />
+                    {error(f.key)}
+                  </label>
+                ))}
+                {(
+                  [
+                    { key: "has_parking", label: t("Parking", "پارکینگ") },
+                    { key: "has_elevator", label: t("Elevator", "آسانسور") },
+                    { key: "has_balcony", label: t("Balcony", "بالکن") },
+                    {
+                      key: "has_warehouse",
+                      label: t("Storage / Warehouse", "انباری"),
+                    },
+                  ] as const
+                ).map((f) => (
+                  <label className="field" key={f.key}>
+                    <span>{f.label}</span>
+                    <Picker
+                      label={f.label}
+                      name={f.key}
+                      value={fields[f.key]}
+                      onChange={(v) => update(f.key, v)}
+                      options={options}
+                    />
+                  </label>
+                ))}
+                <p className="field-hint field-wide">
+                  {t(
+                    "Year: 1200–1500 Solar Hijri. Floor: −5–100; total floors: 1–100. A known floor cannot exceed the total. Leave unknown details blank; the model uses its fitted imputer, not invented property facts.",
+                    "سال: ۱۲۰۰ تا ۱۵۰۰ هجری شمسی. طبقه: ۵− تا ۱۰۰؛ تعداد طبقات: ۱ تا ۱۰۰. طبقه نباید از تعداد طبقات بیشتر باشد. جزئیات نامشخص را خالی بگذارید؛ مدل از جایگزینی آموخته‌شده استفاده می‌کند، نه مشخصات ساختگی.",
+                  )}
+                </p>
+              </div>
+            </details>
+            <label className="field">
+              <span>
+                {t(
+                  "Your asking price (optional)",
+                  "قیمت پیشنهادی شما (اختیاری)",
+                )}
+              </span>
+              <input
+                name="asking_price"
+                inputMode="decimal"
+                placeholder={t("Original source units", "واحد اصلی منبع")}
+                value={asking}
+                onChange={(e) => setAsking(e.target.value)}
+              />
+              <small className="field-hint">
+                {t(
+                  "For comparison only. Currency is not independently verified.",
+                  "فقط برای مقایسه؛ واحد پول به‌طور مستقل تأیید نشده است.",
+                )}
+              </small>
+              {error("asking")}
+            </label>
+            {Object.keys(errors).length > 0 && (
+              <p
+                role="alert"
+                className="field-error"
+                style={{ marginBlockStart: 15 }}
+              >
+                {t(
+                  "Please correct the highlighted fields.",
+                  "لطفاً فیلدهای مشخص‌شده را اصلاح کنید.",
+                )}
+              </p>
+            )}
+            {(all.isError || local.isError) && (
+              <p role="alert" className="field-error">
+                {t(
+                  "Location options are unavailable. Please refresh or try again.",
+                  "گزینه‌های مکان در دسترس نیستند. صفحه را تازه کنید یا دوباره تلاش کنید.",
+                )}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={mutation.isPending || all.isPending}
+            >
+              {mutation.isPending ? (
+                <LoaderCircle size={17} className="loading-icon" />
+              ) : (
+                <Calculator size={17} />
+              )}{" "}
+              {mutation.isPending
+                ? t("Estimating…", "در حال برآورد…")
+                : t("Estimate Property Value", "برآورد ارزش ملک")}
+              <ArrowRight size={16} />
+            </Button>
+            {status.data && !status.data.available && (
+              <p className="field-hint" style={{ marginBlockStart: 12 }}>
+                {t(
+                  "Model unavailable. You can still search for comparable records.",
+                  "مدل در دسترس نیست. جستجوی آگهی‌های مشابه همچنان ممکن است.",
+                )}
+              </p>
+            )}
+          </fieldset>
+        </form>
+        {mutation.isError ? (
+          <div className="result-panel" role="alert">
+            <h2>{t("Estimate unavailable", "برآورد در دسترس نیست")}</h2>
+            <p style={{ marginBlock: "16px 0" }}>
+              {t(
+                "The request could not be completed. Your inputs are preserved.",
+                "درخواست کامل نشد. اطلاعات شما حفظ شده است.",
+              )}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (mutation.variables) mutation.mutate(mutation.variables);
+              }}
+            >
+              {t("Try again", "تلاش دوباره")}
+            </Button>
+          </div>
+        ) : mutation.data ? (
+          <EstimateResult result={mutation.data} asking={asking} />
+        ) : (
+          <aside className="result-panel result-empty" aria-live="polite">
+            <Calculator size={35} />
+            <h2>
+              {mutation.isPending
+                ? t(
+                    "Finding historical context…",
+                    "در حال بررسی داده‌های تاریخی…",
+                  )
+                : t(
+                    "Your estimate will appear here",
+                    "برآورد شما اینجا نمایش داده می‌شود",
+                  )}
+            </h2>
+            <p>
+              {t(
+                "Enter the essentials to see the model estimate, comparable median and matching historical properties.",
+                "مشخصات اصلی را وارد کنید تا برآورد مدل، میانه قیمت مشابه و آگهی‌های تاریخی مرتبط را ببینید.",
+              )}
+            </p>
+            <div className="small-note" style={{ marginBlockStart: 24 }}>
+              <Check
+                size={13}
+                style={{ display: "inline", marginInlineEnd: 7 }}
+              />
+              {t(
+                "No invented listings. No confidence claims.",
+                "بدون آگهی ساختگی یا ادعای اطمینان آماری.",
+              )}
+            </div>
+          </aside>
+        )}
+      </div>
+      {mutation.data && (
+        <>
+          <ComparableResults result={mutation.data} />
+          <CoverageNotice provenance={mutation.data.provenance} />
+        </>
+      )}
+    </>
+  );
+}
+function EstimateResult({
+  result,
+  asking,
+}: {
+  result: ValuationResult;
+  asking: string;
+}) {
+  const { t, n } = useLanguage();
+  const median =
+    result.comparables.length >= 3 ? result.comparable_median_price : null;
+  const price = asking.trim() ? parseNumber(asking) : NaN;
+  return (
+    <section
+      className="result-panel"
+      aria-label={t("Estimation result", "نتیجه برآورد")}
+    >
+      <span className="badge">
+        {result.model.mode === "illustrative"
+          ? t("Illustrative estimate", "برآورد نمایشی")
+          : t("Historical estimate", "برآورد تاریخی")}
+      </span>
+      <div className="estimate-primary">
+        <span>{t("Model Estimate", "برآورد مدل")}</span>
+        {result.prediction ? (
+          <>
+            <strong className="prediction-number">
+              {n(result.prediction.predicted_price, true)}
+            </strong>
+            <small>
+              {n(result.prediction.predicted_price)} ·{" "}
+              {t("original source units", "واحد اصلی منبع")}
+            </small>
+          </>
+        ) : (
+          <p style={{ marginBlockStart: 12 }}>
+            {t(
+              "Model unavailable. See the historical comparables below.",
+              "مدل در دسترس نیست. آگهی‌های مشابه تاریخی را در پایین ببینید.",
+            )}
+          </p>
+        )}
+      </div>
+      {result.prediction?.warnings.some((w) =>
+        w.includes("absent from training"),
+      ) && (
+        <p className="small-note text-warning">
+          {t(
+            "This city was absent from model training. Treat the estimate with extra caution.",
+            "این شهر در داده‌های آموزش مدل وجود نداشته است. برآورد را با احتیاط بیشتری بررسی کنید.",
+          )}
+        </p>
+      )}
+      <div className="estimate-secondary">
+        <span>{t("Comparable Property Median", "میانه قیمت املاک مشابه")}</span>
+        <strong>{median != null ? n(median, true) : "—"}</strong>
+        <p className="small-note">
+          {median != null
+            ? t(
+                "Descriptive median of the returned comparables; not the model prediction.",
+                "میانه توصیفی قیمت آگهی‌های مشابه برگشتی؛ نه پیش‌بینی مدل.",
+              )
+            : t(
+                "At least three comparables are needed for a useful median.",
+                "برای ارائه میانه قابل استفاده، حداقل سه آگهی مشابه لازم است.",
+              )}
+        </p>
+      </div>
+      {Number.isFinite(price) && price > 0 && (
+        <div className="comparison-grid">
+          {[
+            {
+              label: t("Compared with model", "مقایسه با مدل"),
+              value: result.prediction?.predicted_price,
+            },
+            {
+              label: t("Compared with comparables", "مقایسه با آگهی‌های مشابه"),
+              value: median,
+            },
+          ].map((c) => (
+            <div key={c.label}>
+              <span>{c.label}</span>
+              <strong>
+                {c.value ? n(100 * (price / c.value - 1)) + "%" : "—"}
+              </strong>
+              <span>
+                {c.value
+                  ? n(price - c.value, true) +
+                    " " +
+                    t("source units difference", "واحد منبع اختلاف")
+                  : t("Not available", "موجود نیست")}
+              </span>
+            </div>
+          ))}
+          <p className="field-hint field-wide">
+            {t(
+              "Positive means your price is higher, negative means lower. A comparison, not a guarantee.",
+              "عدد مثبت یعنی قیمت شما بالاتر است؛ عدد منفی یعنی پایین‌تر. این فقط مقایسه است، نه تضمین ارزش.",
+            )}
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => status.refetch()}>
-          Refresh status
-        </Button>
-      </div>
-      <div className="prediction-grid">
-        <form
-          className="prediction-form"
-          noValidate
-          onSubmit={submit}
-          onChange={() => {
-            setDirty(true);
-          }}
-        >
-          <div className="section-heading">
-            <span className="section-icon">
-              <Building2 size={18} />
-            </span>
-            <div>
-              <h2>Describe the property</h2>
-              <p>Residential sale listings only</p>
-            </div>
-            <span className="step-number">01 / 02</span>
-          </div>
-          <div className="form-grid">
-            <label>
-              City *
-              <Picker
-                searchable
-                name="city_slug"
-                label="Property city"
-                value={city}
-                onChange={(value) => {
-                  setCity(value);
-                  setNeighborhood("");
-                  setDirty(true);
-                }}
-                options={Array.from(
-                  new Set([
-                    city,
-                    ...(allFacets.data?.cities ||
-                      summary.data?.available_cities ||
-                      []),
-                  ]),
-                ).map((c) => ({ value: c, label: title(c) }))}
-              />
-              <small id="city-help">
-                Use the source city slug. Unseen cities have no learned city
-                effect.
-              </small>
-              {errors.city_slug && (
-                <span className="form-error">{errors.city_slug}</span>
-              )}
-            </label>
-            <label>
-              Property type *
-              <Picker
-                name="cat3_slug"
-                label="Property type"
-                value={propertyType}
-                onChange={(value) => {
-                  setPropertyType(value);
-                  setDirty(true);
-                }}
-                options={[
-                  { value: "apartment-sell", label: "Apartment" },
-                  { value: "house-villa-sell", label: "House / villa" },
-                ]}
-              />
-            </label>
-            <label>
-              Neighborhood{" "}
-              <small>Optional, within retrieved city records</small>
-              <Picker
-                searchable
-                name="neighborhood_slug"
-                label="Property neighborhood"
-                value={neighborhood}
-                onChange={(value) => {
-                  setNeighborhood(value);
-                  setDirty(true);
-                }}
-                options={[
-                  { value: "", label: "Any / unknown neighborhood" },
-                  ...(cityFacets.data?.neighborhoods || []).map((n) => ({
-                    value: n,
-                    label: title(n),
-                  })),
-                ]}
-              />
-            </label>
-            {[
-              {
-                name: "building_size",
-                label: "Building area",
-                unit: "m²",
-                value: 90,
-                min: 1,
-                max: 10000,
-                step: "any",
-              },
-              {
-                name: "rooms_count",
-                label: "Bedrooms",
-                unit: "rooms",
-                value: 2,
-                min: 0,
-                max: 20,
-              },
-              {
-                name: "floor",
-                label: "Floor",
-                unit: "level",
-                value: 2,
-                min: -5,
-                max: 100,
-              },
-              {
-                name: "total_floors_count",
-                label: "Total floors",
-                unit: "floors",
-                value: 5,
-                min: 1,
-                max: 100,
-              },
-              {
-                name: "construction_year",
-                label: "Construction year",
-                unit: "Solar Hijri",
-                value: 1395,
-                min: 1200,
-                max: 1500,
-              },
-            ].map((field) => (
-              <label key={field.name}>
-                {field.label} *
-                <div className="input-with-unit">
-                  <input
-                    name={field.name}
-                    type="number"
-                    defaultValue={field.value}
-                    min={field.min}
-                    max={field.max}
-                    step={field.step || 1}
-                    aria-invalid={!!errors[field.name]}
-                  />
-                  <span>{field.unit}</span>
-                </div>
-                {errors[field.name] && (
-                  <span className="form-error">{errors[field.name]}</span>
-                )}
-              </label>
-            ))}
-          </div>
-          <fieldset className="amenity-inputs">
-            <legend>Property amenities</legend>
-            {["parking", "elevator", "balcony", "warehouse"].map((feature) => (
-              <label key={feature}>
-                <input
-                  name={`has_${feature}`}
-                  type="checkbox"
-                  defaultChecked={
-                    feature === "parking" || feature === "elevator"
-                  }
-                />
-                <span className="checkbox-indicator">
-                  <Check size={12} />
-                </span>
-                {title(feature)}
-              </label>
-            ))}
-          </fieldset>
-          <div className="form-note">
-            <ShieldCheck size={15} />
-            <p>
-              No address, contact information, or personal data is requested or
-              stored.
-            </p>
-          </div>
-          <Button
-            type="submit"
-            disabled={mutation.isPending}
-            className="predict-button"
-          >
-            {mutation.isPending ? (
-              <LoaderCircle size={16} className="loading-icon" />
-            ) : (
-              <Sparkles size={16} />
+      )}
+      <details className="methodology">
+        <summary>
+          {t("How was this estimated?", "این برآورد چگونه محاسبه شد؟")}
+        </summary>
+        <p>
+          {t(
+            "The Random Forest uses the approved fitted model. Comparables are real same-city, same-type historical records ranked by characteristics. Their median is a separate descriptive measure.",
+            "جنگل تصادفی از مدل آموزش‌دیده تأییدشده استفاده می‌کند. آگهی‌های مشابه، داده‌های واقعی تاریخی از همان شهر و نوع ملک هستند که بر اساس ویژگی‌ها رتبه‌بندی می‌شوند. میانه آن‌ها یک معیار توصیفی جداگانه است.",
+          )}
+        </p>
+        <ul>
+          <li>
+            {t(
+              "Trained on a limited subset, not all prepared records or every Iranian city.",
+              "آموزش روی نمونه محدودی بوده، نه تمام آرشیو یا همه شهرهای ایران.",
             )}
-            Estimate asking price <ArrowRight size={16} />
-          </Button>
-          {Object.keys(errors).length > 0 && (
-            <p role="alert" className="form-error">
-              Please correct the highlighted property fields.
-            </p>
-          )}
-          {mutation.error && (
-            <p role="alert" className="form-error">
-              {mutation.error.message}
-            </p>
-          )}
-        </form>
-        <div className="prediction-results">
-          <div className="section-heading">
-            <span className="section-icon">
-              <Layers3 size={18} />
-            </span>
-            <div>
-              <h2>Your estimate</h2>
-              <p>Calculated by the configured model</p>
-            </div>
-            <span className="step-number">02 / 02</span>
-          </div>
-          {result ? (
-            <div
-              className={`result-card ${dirty ? "result-stale" : ""}`}
-              aria-live="polite"
-            >
-              <span className="eyebrow">
-                {result.model.mode === "illustrative"
-                  ? "ILLUSTRATIVE MODEL OUTPUT"
-                  : "MODEL ESTIMATE"}
-              </span>
-              <strong className="prediction-number">
-                {compact(result.predicted_price)}
-              </strong>
-              <p>{result.units}</p>
-              <div className="result-per-sqm">
-                <span>Asking price / m²</span>
-                <strong>{compact(result.price_per_sqm)}</strong>
-              </div>
-              <div className="exact-estimate">
-                Exact output:{" "}
-                {result.predicted_price.toLocaleString("en", {
-                  maximumFractionDigits: 2,
-                })}
-              </div>
-              {dirty && (
-                <p className="form-error">
-                  Inputs changed. Run the model again to update this estimate.
-                </p>
-              )}
-              <div className="model-signature">
-                <span>Random Forest</span>
-                <code>{result.model.version}</code>
-              </div>
-            </div>
-          ) : (
-            <div className="result-placeholder">
-              <div className="orbit-icon">
-                <Sparkles size={28} />
-              </div>
-              <h3>
-                {status.data?.available
-                  ? "Ready when you are."
-                  : "Waiting for a model."}
-              </h3>
-              <p>
-                {status.data?.available
-                  ? "Set the property features and run an estimate. Results are returned by the Python model."
-                  : "Comparable search works without a model. Configure a trusted artifact bundle to add an ML estimate."}
-              </p>
-              <span className="empty-price">
-                — <small>source units</small>
-              </span>
-            </div>
-          )}
-          <div className="prediction-caveats">
-            <CircleAlert size={17} />
-            <h3>Read before using an estimate</h3>
-            <ul>
-              {(
-                result?.warnings || [
-                  "Asking prices are not completed-sale prices.",
-                  "Illustrative models do not establish market accuracy.",
-                  "No confidence interval or investment recommendation is provided.",
-                  "Currency units remain unverified.",
-                ]
-              ).map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-      {mutation.data && <ComparableResults data={mutation.data} />}
-    </>
+          </li>
+          <li>
+            {t(
+              "Unknown details use fitted training-data imputation; they are not known attributes.",
+              "جزئیات نامشخص با مقادیر آموخته‌شده جایگزین می‌شوند؛ این‌ها مشخصات قطعی ملک نیستند.",
+            )}
+          </li>
+          <li>
+            {t(
+              "Asking prices are not verified transactions or current-market guarantees.",
+              "قیمت‌های پیشنهادی، معامله قطعی یا تضمین بازار امروز نیستند.",
+            )}
+          </li>
+          <li>
+            {t(
+              "No calibrated confidence interval. Currency units remain unverified.",
+              "بازه اطمینان کالیبره‌شده موجود نیست. واحد پول تأیید نشده است.",
+            )}
+          </li>
+        </ul>
+        <p>
+          {t("Model version", "نسخه مدل")}:{" "}
+          <code dir="ltr">{result.model.version || "—"}</code>
+        </p>
+        <Link href="/model" className="text-accent">
+          {t("View model methodology", "مشاهده روش‌شناسی مدل")}
+        </Link>
+      </details>
+    </section>
   );
 }

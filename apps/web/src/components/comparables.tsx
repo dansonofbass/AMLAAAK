@@ -1,233 +1,119 @@
 "use client";
-import {
-  BedDouble,
-  CalendarDays,
-  CarFront,
-  Check,
-  DoorOpen,
-  MapPin,
-  Ruler,
-  Warehouse,
-  X,
-} from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { BedDouble, Ruler, CalendarDays } from "lucide-react";
 import { z } from "zod";
 import { valuationSchema } from "@/lib/contracts";
-import { compact, propertyLabel, title } from "@/lib/utils";
-import { CoverageNotice } from "./coverage";
-export function ComparableResults({
-  data,
-}: {
-  data: z.infer<typeof valuationSchema>;
-}) {
-  const bars = [
-    ...(data.prediction
-      ? [{ name: "ML estimate", price: data.prediction.predicted_price }]
-      : []),
-    ...(data.comparable_median_price !== null
-      ? [{ name: "Comparable median", price: data.comparable_median_price }]
-      : []),
-  ];
+import { useLanguage } from "./language";
+export type ValuationResult = z.infer<typeof valuationSchema>;
+export function ComparableResults({ result }: { result: ValuationResult }) {
+  const { t, n, city, property, language, year: formatYear } = useLanguage();
+  function reason(value: string) {
+    if (language === "en") return value;
+    const fixed: Record<string, string> = {
+      "Same city": "همان شهر",
+      "Same residential sale category": "همان نوع ملک مسکونی",
+      "Same neighborhood": "همان محله",
+      "Different or unknown neighborhood": "محله متفاوت یا نامشخص",
+      "Bedrooms unknown": "تعداد اتاق‌خواب نامشخص",
+      "Parking matches": "پارکینگ مشابه",
+      "Elevator matches": "آسانسور مشابه",
+      "Balcony matches": "بالکن مشابه",
+      "Warehouse matches": "انباری مشابه",
+      "Advertisement period unknown": "زمان آگهی نامشخص",
+    };
+    if (fixed[value]) return fixed[value];
+    const area = value.match(/^Area differs by ([\d.]+)/);
+    if (area) return "اختلاف مساحت: " + n(Number(area[1])) + " مترمربع";
+    const rooms = value.match(/^([\d.]+) bedrooms/);
+    if (rooms) return n(Number(rooms[1])) + " اتاق‌خواب";
+    const year = value.match(/^Construction year differs by ([\d.]+)/);
+    if (year) return "اختلاف سال ساخت: " + n(Number(year[1])) + " سال";
+    const date = value.match(/^Advertisement ([\d.]+) month/);
+    if (date) return n(Number(date[1])) + " ماه فاصله با جدیدترین آگهی مقایسه";
+    return "مقایسه ویژگی‌های تاریخی";
+  }
   return (
     <section
-      role="region"
       className="comparable-section"
-      aria-label="Comparable property results"
+      aria-label={t("Comparable property results", "نتایج املاک مشابه")}
     >
       <div className="section-heading">
-        <MapPin size={20} />
         <div>
-          <h2>Comparable historical properties</h2>
-          <p>{data.label}</p>
-        </div>
-        <span className="dataset-badge">{data.comparables.length} MATCHES</span>
-      </div>
-      <CoverageNotice provenance={data.provenance} />
-      <div className="comparison-summary">
-        <div>
-          <span className="eyebrow">RETRIEVED COMPARABLE MEDIAN</span>
-          <strong>{compact(data.comparable_median_price)}</strong>
+          <h2>{t("Comparable Properties", "املاک مشابه")}</h2>
           <p>
-            {compact(data.comparable_median_price_per_sqm)} / m² · original
-            source units
+            {t(
+              "Actual historical records from the same city and property type. Matching is a heuristic, not a probability.",
+              "آگهی‌های واقعی تاریخی از همان شهر و نوع ملک. تطبیق بر اساس قواعد است، نه احتمال آماری.",
+            )}
           </p>
         </div>
-        <div>
-          <span className="eyebrow">MODEL VS. COMPARABLES</span>
-          <strong>
-            {data.prediction_vs_comparable_percent !== null
-              ? `${data.prediction_vs_comparable_percent > 0 ? "+" : ""}${data.prediction_vs_comparable_percent.toFixed(1)}%`
-              : "—"}
-          </strong>
-          <p>
-            {data.prediction
-              ? "Descriptive comparison, not an accuracy score."
-              : "Comparables work without an available model."}
-          </p>
-        </div>
-        {bars.length > 0 && (
-          <div className="comparison-chart">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={bars}
-                layout="vertical"
-                margin={{ left: 0, right: 20 }}
-              >
-                <XAxis
-                  type="number"
-                  tickFormatter={compact}
-                  tick={{ fontSize: 10, fill: "#a0abc0" }}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={105}
-                  tick={{ fontSize: 10, fill: "#cbd3e4" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#202a3c",
-                    border: "1px solid #52627d",
-                    borderRadius: 8,
-                  }}
-                  formatter={(v) => compact(Number(v))}
-                />
-                <Bar
-                  isAnimationActive={false}
-                  dataKey="price"
-                  radius={[0, 4, 4, 0]}
-                >
-                  {bars.map((b, i) => (
-                    <Cell key={b.name} fill={i ? "#51d4dd" : "#a38bf4"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <span className="badge">
+          {n(result.comparables.length)} {t("comparables", "ملک مشابه")}
+        </span>
       </div>
-      {!data.comparables.length ? (
+      {!result.comparables.length ? (
         <div className="state-card">
-          <h3>No eligible comparables in the retrieved records</h3>
+          <h3>
+            {t("No comparable records available", "آگهی مشابهی در دسترس نیست")}
+          </h3>
           <p>
-            This does not mean there are no matching homes in the full dataset.
-            Broader source coverage may be needed.
+            {result.coverage.method === "upstream_unavailable"
+              ? t(
+                  "The archive could not be reached. No sample records have been substituted.",
+                  "دسترسی به آرشیو ممکن نشد. هیچ داده نمایشی جایگزین نشده است.",
+                )
+              : t(
+                  "Try another city or property type. This does not mean no such homes exist.",
+                  "شهر یا نوع ملک دیگری را امتحان کنید. این نتیجه به معنی نبودن چنین املاکی نیست.",
+                )}
           </p>
         </div>
       ) : (
         <div className="comparable-grid">
-          {data.comparables.map(
-            ({ property: p, similarity_score, reasons }) => (
-              <article className="comparable-card" key={p.id}>
-                <div className="comparable-card-top">
-                  <span className="property-category">
-                    {propertyLabel(p.cat3_slug)}
-                  </span>
-                  <span className="similarity-score">
-                    {similarity_score.toFixed(0)}{" "}
-                    <small>/ 100 similarity</small>
-                  </span>
-                </div>
-                <h3>
-                  <MapPin size={14} />
-                  {title(p.city_slug)}
-                  {p.neighborhood_slug && (
-                    <span> / {title(p.neighborhood_slug)}</span>
-                  )}
-                </h3>
-                <div className="comparable-price">
-                  {compact(p.price_value)}
-                  <small>{compact(p.price_per_sqm)} / m²</small>
-                </div>
-                <div className="property-specs">
-                  <span>
-                    <Ruler size={13} />
-                    {p.building_size} m²
-                  </span>
-                  <span>
-                    <BedDouble size={13} />
-                    {p.rooms_count ?? "Unknown"} bedrooms
-                  </span>
-                  <span>
-                    <CalendarDays size={13} />
-                    Built {p.construction_year ?? "unknown"} SH
-                  </span>
-                </div>
-                <div className="comparable-amenities">
-                  {[
-                    { key: "has_parking", label: "Parking", icon: CarFront },
-                    { key: "has_elevator", label: "Elevator", icon: DoorOpen },
-                    { key: "has_balcony", label: "Balcony", icon: DoorOpen },
-                    {
-                      key: "has_warehouse",
-                      label: "Warehouse",
-                      icon: Warehouse,
-                    },
-                  ].map((item) => {
-                    const value = p[item.key as "has_parking"];
-                    return (
-                      <span
-                        key={item.key}
-                        className={value === true ? "present" : "unknown"}
-                        title={`${item.label}: ${value === null ? "unknown" : value ? "yes" : "no"}`}
-                      >
-                        <item.icon size={12} />
-                        {item.label}
-                        {value === true ? (
-                          <Check size={10} />
-                        ) : value === false ? (
-                          <X size={10} />
-                        ) : (
-                          <small>?</small>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-                <details>
-                  <summary>Why this property matches</summary>
-                  <ul>
-                    {reasons.map((reason) => (
-                      <li key={reason}>{reason}</li>
-                    ))}
-                  </ul>
-                </details>
-                <div className="comparable-source">
-                  <span>
-                    <CalendarDays size={12} />
-                    {p.created_at_month || "Period unknown"} · historical, not
-                    active
-                  </span>
-                  <strong>
-                    {data.provenance.kind === "divar"
-                      ? "Genuine Divar source record"
-                      : "Illustrative fixture record"}
-                  </strong>
-                  <code title={p.source_identity || p.id}>
-                    {p.source_identity || `fixture:${p.id}`}
-                  </code>
-                </div>
-              </article>
-            ),
-          )}
+          {result.comparables.map(({ property: p, reasons }) => (
+            <article className="comparable-card" key={p.id}>
+              <p className="card-type">{property(p.cat3_slug)}</p>
+              <h3>
+                {city(p.city_slug)}
+                {p.neighborhood_slug ? " / " + city(p.neighborhood_slug) : ""}
+              </h3>
+              <strong className="card-price numeric">
+                {n(p.price_value, true)}
+              </strong>
+              <span className="small-note">
+                {t("asking price · source units", "قیمت پیشنهادی · واحد منبع")}
+              </span>
+              <div className="card-specs">
+                <span>
+                  <Ruler size={13} />
+                  <bdi>{n(p.building_size)} m²</bdi>
+                </span>
+                <span>
+                  <BedDouble size={13} />
+                  {n(p.rooms_count)}
+                </span>
+                <span>
+                  <CalendarDays size={13} />
+                  {formatYear(p.construction_year)}
+                </span>
+              </div>
+              <details className="match-reasons">
+                <summary>{t("Why this property?", "چرا این ملک؟")}</summary>
+                <ul>
+                  {reasons.map((r, i) => (
+                    <li key={i}>{reason(r)}</li>
+                  ))}
+                </ul>
+              </details>
+              <p className="record-period">
+                {t("Historical ad", "آگهی تاریخی")} ·{" "}
+                <bdi dir="ltr">
+                  {p.created_at_month || t("Month unknown", "ماه نامشخص")}
+                </bdi>
+              </p>
+            </article>
+          ))}
         </div>
       )}
-      <details className="valuation-limitations">
-        <summary>Coverage and methodology limitations</summary>
-        <ul>
-          {data.limitations.map((limit) => (
-            <li key={limit}>{limit}</li>
-          ))}
-        </ul>
-      </details>
     </section>
   );
 }

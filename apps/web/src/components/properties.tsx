@@ -1,284 +1,319 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowDownUp,
-  ArrowUpRight,
-  Building2,
-  ChevronLeft,
-  ChevronRight,
-  Database,
-  MapPin,
-} from "lucide-react";
-import { Picker } from "./ui/picker";
-import { CoverageNotice } from "./coverage";
+import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { api } from "@/lib/api";
 import {
   propertyPageSchema,
-  propertySchema,
   queryString,
+  type Property,
+  type Filters,
 } from "@/lib/contracts";
-import { useWorkspace, useAnalytics } from "./workspace";
+import { useWorkspace } from "./workspace";
+import { useLanguage } from "./language";
 import { FiltersBar } from "./filters";
-import { DetailDialog } from "./ui/dialog";
+import { CoverageNotice } from "./coverage";
+import { Picker } from "./ui/picker";
 import { Button } from "./ui/button";
-import { EmptyState, ErrorState, LoadingState } from "./status";
-import { compact, propertyLabel, title } from "@/lib/utils";
+import { DetailDialog } from "./ui/dialog";
+import { LoadingState, ErrorState, EmptyState } from "./status";
 export function PropertiesPage() {
   const { filters } = useWorkspace();
+  const { t } = useLanguage();
   return (
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">THE RECORDS BEHIND THE NUMBERS</span>
-          <h1>
-            Property explorer<span className="heading-period">.</span>
-          </h1>
+          <span className="eyebrow">
+            {t("EXPLORE / HISTORICAL SALES", "جستجو / فروش‌های تاریخی")}
+          </span>
+          <h1>{t("Explore Properties", "جستجوی ملک")}</h1>
           <p>
-            Structured, privacy-conscious records. All figures in original
-            source units.
+            {t(
+              "Search the historical archive. No active availability or exact property locations are implied.",
+              "آرشیو تاریخی را جستجو کنید. موجود بودن آگهی یا موقعیت دقیق ملک تأیید نمی‌شود.",
+            )}
           </p>
         </div>
-        <span className="dataset-badge">
-          <Database size={12} />
-          READ ONLY
-        </span>
       </div>
-      <FiltersBar />
-      <PropertyTable key={queryString(filters)} />
+      <FiltersBar detailed />
+      <Explorer key={queryString(filters)} filters={filters} />
     </>
   );
 }
-function PropertyTable() {
-  const { filters, setFilters } = useWorkspace();
-  const { summary } = useAnalytics();
+function Explorer({ filters }: { filters: Filters }) {
+  const { t, n, city, property, known, year: formatYear } = useLanguage();
+  const { setFilters } = useWorkspace();
   const [page, setPage] = useState(1),
-    [sort, setSort] = useState("price_value"),
-    [order, setOrder] = useState("desc"),
     [size, setSize] = useState(5),
-    [selected, setSelected] = useState<string | null>(null);
-  const query =
-    queryString(filters) +
-    `&page=${page}&page_size=${size}&sort=${sort}&order=${order}`;
-  const records = useQuery({
-    queryKey: ["properties", query],
-    queryFn: () => api(`properties?${query}`, propertyPageSchema),
+    [sort, setSort] = useState("price_value:desc"),
+    [selected, setSelected] = useState<Property | null>(null);
+  const [field, order] = sort.split(":");
+  const params = new URLSearchParams(queryString(filters));
+  params.set("page", String(page));
+  params.set("page_size", String(size));
+  params.set("sort", field);
+  params.set("order", order);
+  const query = useQuery({
+    queryKey: ["properties", params.toString()],
+    queryFn: () => api("properties?" + params, propertyPageSchema),
   });
-  const detail = useQuery({
-    queryKey: ["property", selected],
-    queryFn: () => api(`properties/${selected}`, propertySchema),
-    enabled: !!selected,
-  });
-  if (records.isError)
+  if (query.isError)
     return (
-      <ErrorState
-        message={records.error.message}
-        retry={() => records.refetch()}
-      />
+      <ErrorState message={query.error.message} retry={() => query.refetch()} />
     );
-  if (!records.data) return <LoadingState />;
-  const data = records.data;
+  if (!query.data) return <LoadingState />;
+  const data = query.data;
   return (
     <>
-      <div className="records-banner">
-        <span className="status-dot" />
-        <strong>{data.total} eligible records</strong>
-        <span>
-          {summary.data?.provenance.kind === "illustrative"
-            ? "Illustrative fixture · not live advertisements"
-            : "Retrieved historical records"}
-        </span>
-      </div>
       {data.provenance && <CoverageNotice provenance={data.provenance} />}
       <section className="table-panel">
         <div className="table-toolbar">
-          <h2>Residential sales</h2>
           <div>
-            <label>
-              Sort by
-              <Picker
-                label="Sort properties"
-                value={sort}
-                onChange={(value) => {
-                  setSort(value);
-                  setPage(1);
-                }}
-                options={[
-                  { value: "price_value", label: "Asking price" },
-                  { value: "price_per_sqm", label: "Price / m2" },
-                  { value: "building_size", label: "Area" },
-                  { value: "city_slug", label: "City" },
-                ]}
-              />
-            </label>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={
-                order === "desc" ? "Sort ascending" : "Sort descending"
-              }
-              onClick={() => {
-                setOrder(order === "desc" ? "asc" : "desc");
+            <h2>
+              {n(data.total)} {t("historical properties", "ملک تاریخی")}
+            </h2>
+            <p className="small-note">
+              {t(
+                "Asking prices in original source units",
+                "قیمت‌های پیشنهادی با واحد اصلی منبع",
+              )}
+            </p>
+          </div>
+          <label className="field">
+            <span>{t("Sort by", "مرتب‌سازی")}</span>
+            <Picker
+              label={t("Sort properties", "مرتب‌سازی املاک")}
+              value={sort}
+              onChange={(v) => {
+                setSort(v);
                 setPage(1);
               }}
-            >
-              <ArrowDownUp size={14} />
-            </Button>
-          </div>
+              options={[
+                {
+                  value: "price_value:desc",
+                  label: t("Price: high to low", "قیمت: بیشترین"),
+                },
+                {
+                  value: "price_value:asc",
+                  label: t("Price: low to high", "قیمت: کمترین"),
+                },
+                {
+                  value: "building_size:desc",
+                  label: t("Area: largest first", "مساحت: بیشترین"),
+                },
+                {
+                  value: "building_size:asc",
+                  label: t("Area: smallest first", "مساحت: کمترین"),
+                },
+                {
+                  value: "price_per_sqm:desc",
+                  label: t("Price / m²", "قیمت / مترمربع"),
+                },
+                {
+                  value: "city_slug:asc",
+                  label: t("City: source order", "شهر: ترتیب منبع"),
+                },
+              ]}
+            />
+          </label>
         </div>
         {!data.total ? (
           <EmptyState reset={() => setFilters({})} />
         ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Property</th>
-                  <th>City</th>
-                  <th>Area</th>
-                  <th>Rooms</th>
-                  <th>Built</th>
-                  <th>Asking price</th>
-                  <th>Price / m²</th>
-                  <th>
-                    <span className="sr-only">Details</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <span className="property-type">
-                        <span>
-                          <Building2 size={17} />
-                        </span>
-                        <div>
-                          <strong>{propertyLabel(p.cat3_slug)}</strong>
-                          <small>{p.id.slice(0, 8)}</small>
-                        </div>
-                      </span>
-                    </td>
-                    <td>
-                      <span className="table-city">
-                        <MapPin size={12} />
-                        {title(p.city_slug)}
-                      </span>
-                    </td>
-                    <td>
-                      {p.building_size} <small>m²</small>
-                    </td>
-                    <td>{p.rooms_count ?? "—"}</td>
-                    <td>{p.construction_year ?? "—"}</td>
-                    <td
-                      className="price-cell"
-                      title={p.price_value.toLocaleString("en")}
-                    >
-                      {compact(p.price_value)}
-                    </td>
-                    <td>{compact(p.price_per_sqm)}</td>
-                    <td>
-                      <button
-                        className="detail-link"
-                        aria-label={`View ${p.id} details`}
-                        onClick={() => setSelected(p.id)}
-                      >
-                        <ArrowUpRight size={17} />
-                      </button>
-                    </td>
+          <>
+            <div className="table-scroll property-table">
+              <table>
+                <thead>
+                  <tr>
+                    {[
+                      t("Property", "ملک"),
+                      t("Area", "مساحت"),
+                      t("Bedrooms", "اتاق‌خواب"),
+                      t("Year built", "سال ساخت"),
+                      t("Asking price", "قیمت پیشنهادی"),
+                      t("Ad period", "زمان آگهی"),
+                      t("Details", "جزئیات"),
+                    ].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {data.items.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        <strong>{city(p.city_slug)}</strong>
+                        <small>
+                          {p.neighborhood_slug
+                            ? city(p.neighborhood_slug) + " · "
+                            : ""}
+                          {property(p.cat3_slug)}
+                        </small>
+                      </td>
+                      <td>
+                        <bdi>{n(p.building_size)} m²</bdi>
+                      </td>
+                      <td>{n(p.rooms_count)}</td>
+                      <td>{formatYear(p.construction_year)}</td>
+                      <td className="numeric">
+                        <strong>{n(p.price_value, true)}</strong>
+                        <small>{n(p.price_per_sqm, true)} / m²</small>
+                      </td>
+                      <td>
+                        <bdi dir="ltr">
+                          {p.created_at_month || t("Not recorded", "ثبت نشده")}
+                        </bdi>
+                      </td>
+                      <td>
+                        <button
+                          className="detail-link"
+                          onClick={() => setSelected(p)}
+                          aria-label={t(
+                            "View property details",
+                            "نمایش جزئیات ملک",
+                          )}
+                        >
+                          <ArrowUpRight size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="property-mobile-list">
+              {data.items.map((p) => (
+                <article key={p.id}>
+                  <div>
+                    <h3>
+                      {city(p.city_slug)}
+                      {p.neighborhood_slug
+                        ? " / " + city(p.neighborhood_slug)
+                        : ""}
+                    </h3>
+                    <p>
+                      {property(p.cat3_slug)} ·{" "}
+                      <bdi>{n(p.building_size)} m²</bdi> · {n(p.rooms_count)}{" "}
+                      {t("bedrooms", "اتاق‌خواب")}
+                    </p>
+                    <strong>{n(p.price_value, true)}</strong>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelected(p)}
+                  >
+                    {t("Details", "جزئیات")}
+                  </Button>
+                </article>
+              ))}
+            </div>
+            <div className="pagination">
+              <span>
+                {n((page - 1) * size + 1)}–
+                {n(Math.min(page * size, data.total))} {t("of", "از")}{" "}
+                {n(data.total)}
+              </span>
+              <div className="pagination-controls">
+                <Picker
+                  label={t("Rows per page", "تعداد در صفحه")}
+                  value={String(size)}
+                  onChange={(v) => {
+                    setSize(Number(v));
+                    setPage(1);
+                  }}
+                  options={[5, 10, 25].map((v) => ({
+                    value: String(v),
+                    label: n(v),
+                  }))}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === 1 || query.isFetching}
+                  onClick={() => setPage((v) => v - 1)}
+                  aria-label={t("Previous page", "صفحه قبل")}
+                >
+                  <ChevronLeft size={17} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page * size >= data.total || query.isFetching}
+                  onClick={() => setPage((v) => v + 1)}
+                  aria-label={t("Next page", "صفحه بعد")}
+                >
+                  <ChevronRight size={17} />
+                </Button>
+              </div>
+            </div>
+          </>
         )}
-        <div className="table-pagination">
-          <label>
-            Rows
-            <Picker
-              label="Rows per page"
-              value={String(size)}
-              onChange={(value) => {
-                setSize(Number(value));
-                setPage(1);
-              }}
-              options={[5, 10, 25].map((v) => ({
-                value: String(v),
-                label: String(v),
-              }))}
-            />
-          </label>
-          <span>
-            {data.total
-              ? `${(page - 1) * size + 1}–${Math.min(page * size, data.total)}`
-              : "0"}{" "}
-            of {data.total}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Previous page"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            <ChevronLeft size={16} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Next page"
-            disabled={page * size >= data.total}
-            onClick={() => setPage(page + 1)}
-          >
-            <ChevronRight size={16} />
-          </Button>
-        </div>
       </section>
-      <p className="privacy-caption">
-        No listing titles, descriptions, advertiser contacts, or precise
-        property coordinates are exposed.
-      </p>
       <DetailDialog
         open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
+        onOpenChange={(v) => {
+          if (!v) setSelected(null);
         }}
-        title="Property details"
+        title={
+          selected
+            ? city(selected.city_slug) + " · " + property(selected.cat3_slug)
+            : ""
+        }
       >
-        {detail.isLoading ? (
-          <p>Loading record…</p>
-        ) : detail.error ? (
-          <p role="alert">{detail.error.message}</p>
-        ) : (
-          detail.data && (
-            <>
-              <span className="dataset-badge sample">
-                {summary.data?.provenance.kind === "illustrative"
-                  ? "ILLUSTRATIVE RECORD"
-                  : "HISTORICAL RECORD"}
-              </span>
-              <dl className="detail-fields">
-                {Object.entries(detail.data).map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{title(key.replaceAll("_", " "))}</dt>
-                    <dd>
-                      {typeof value === "boolean"
-                        ? value
-                          ? "Yes"
-                          : "No"
-                        : value === null
-                          ? "Unknown"
-                          : typeof value === "number"
-                            ? value.toLocaleString("en", {
-                                maximumFractionDigits: 2,
-                              })
-                            : String(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </>
-          )
+        {selected && (
+          <>
+            <dl className="detail-grid">
+              {[
+                [
+                  t("Neighborhood", "محله"),
+                  selected.neighborhood_slug
+                    ? city(selected.neighborhood_slug)
+                    : t("Unknown", "نامشخص"),
+                ],
+                [
+                  t("Asking price · source units", "قیمت پیشنهادی · واحد منبع"),
+                  n(selected.price_value),
+                ],
+                [t("Area (m²)", "مساحت (مترمربع)"), n(selected.building_size)],
+                [t("Bedrooms", "اتاق‌خواب"), n(selected.rooms_count)],
+                [
+                  t("Construction year", "سال ساخت"),
+                  formatYear(selected.construction_year),
+                ],
+                [
+                  t("Floor / total floors", "طبقه / تعداد طبقات"),
+                  n(selected.floor) + " / " + n(selected.total_floors_count),
+                ],
+                [t("Parking", "پارکینگ"), known(selected.has_parking)],
+                [t("Elevator", "آسانسور"), known(selected.has_elevator)],
+                [t("Balcony", "بالکن"), known(selected.has_balcony)],
+                [t("Storage", "انباری"), known(selected.has_warehouse)],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="detail-provenance">
+              <p>
+                {t(
+                  "Historical asking price; not an active listing or completed transaction.",
+                  "قیمت پیشنهادی تاریخی؛ نه آگهی فعال و نه معامله قطعی.",
+                )}
+              </p>
+              <p>
+                {t("Advertisement month", "ماه آگهی")}:{" "}
+                <bdi dir="ltr">{selected.created_at_month || "—"}</bdi>
+              </p>
+              <code dir="ltr">{selected.source_identity || selected.id}</code>
+              <code dir="ltr">
+                {selected.source_revision || data.provenance?.revision}
+              </code>
+            </div>
+          </>
         )}
       </DetailDialog>
     </>

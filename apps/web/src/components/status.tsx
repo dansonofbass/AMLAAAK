@@ -1,11 +1,19 @@
+"use client";
 import { AlertCircle, Database, LoaderCircle } from "lucide-react";
 import { Button } from "./ui/button";
+import { useLanguage } from "./language";
 export function LoadingState() {
+  const { t } = useLanguage();
   return (
-    <div className="state-card" role="status">
-      <LoaderCircle className="loading-icon" size={24} />
-      <h2>Reading your workspace</h2>
-      <p>Fetching analytics from the API.</p>
+    <div className="state-card" role="status" aria-live="polite">
+      <LoaderCircle className="loading-icon" size={25} />
+      <h2>{t("Loading historical data", "در حال دریافت داده‌های تاریخی")}</h2>
+      <p>
+        {t(
+          "Your selection is being retrieved securely.",
+          "داده‌های انتخاب شما به‌صورت امن دریافت می‌شوند.",
+        )}
+      </p>
       <div className="loading-skeletons" aria-hidden="true">
         <span />
         <span />
@@ -21,27 +29,45 @@ export function ErrorState({
   message: string;
   retry?: () => void;
 }) {
+  const { t, language } = useLanguage();
   return (
     <div className="state-card error-state" role="alert">
-      <AlertCircle size={26} />
-      <h2>Analytics are unavailable</h2>
-      <p>{message}</p>
+      <AlertCircle size={27} />
+      <h2>
+        {t("Data is temporarily unavailable", "داده‌ها موقتاً در دسترس نیستند")}
+      </h2>
+      <p>
+        {language === "en"
+          ? message
+          : t(
+              "Please retry. No example records have been substituted.",
+              "دوباره تلاش کنید. هیچ داده نمایشی جایگزین نشده است.",
+            )}
+      </p>
       {retry && (
-        <Button onClick={retry} variant="outline">
-          Try again
+        <Button variant="outline" onClick={retry}>
+          {t("Try again", "تلاش دوباره")}
         </Button>
       )}
     </div>
   );
 }
 export function EmptyState({ reset }: { reset: () => void }) {
+  const { t } = useLanguage();
   return (
     <div className="state-card">
-      <Database size={26} />
-      <h2>No matching sales</h2>
-      <p>Try a wider area, price range, or another city.</p>
-      <Button onClick={reset} variant="outline">
-        Reset filters
+      <Database size={27} />
+      <h2>
+        {t("No matching historical sales", "آگهی فروش تاریخی مطابق یافت نشد")}
+      </h2>
+      <p>
+        {t(
+          "Try another city or widen your search range.",
+          "شهر دیگری انتخاب کنید یا بازه جستجو را افزایش دهید.",
+        )}
+      </p>
+      <Button variant="outline" onClick={reset}>
+        {t("Clear Filters", "پاک کردن فیلترها")}
       </Button>
     </div>
   );

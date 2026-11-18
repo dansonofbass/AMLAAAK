@@ -159,18 +159,36 @@ export const predictionInputSchema = z
     cat3_slug: z.enum(["apartment-sell", "house-villa-sell"]),
     building_size: z.number().positive().max(10000),
     rooms_count: z.number().int().min(0).max(20),
-    floor: z.number().int().min(-5).max(100),
-    total_floors_count: z.number().int().min(1).max(100),
-    construction_year: z.number().int().min(1200).max(1500),
-    has_parking: z.boolean(),
-    has_elevator: z.boolean(),
-    has_balcony: z.boolean(),
-    has_warehouse: z.boolean(),
+    floor: z.number().int().min(-5).max(100).nullable().default(null),
+    total_floors_count: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .nullable()
+      .default(null),
+    construction_year: z
+      .number()
+      .int()
+      .min(1200)
+      .max(1500)
+      .nullable()
+      .default(null),
+    has_parking: z.boolean().nullable().default(null),
+    has_elevator: z.boolean().nullable().default(null),
+    has_balcony: z.boolean().nullable().default(null),
+    has_warehouse: z.boolean().nullable().default(null),
   })
-  .refine((v) => v.floor <= v.total_floors_count, {
-    message: "Floor cannot exceed total floors",
-    path: ["floor"],
-  });
+  .refine(
+    (v) =>
+      v.floor == null ||
+      v.total_floors_count == null ||
+      v.floor <= v.total_floors_count,
+    {
+      message: "Floor cannot exceed total floors",
+      path: ["floor"],
+    },
+  );
 export type Summary = z.infer<typeof summarySchema>;
 export type City = z.infer<typeof citySchema>;
 export type Distributions = z.infer<typeof distributionsSchema>;

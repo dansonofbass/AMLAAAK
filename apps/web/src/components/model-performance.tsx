@@ -1,18 +1,12 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Activity,
-  Braces,
-  FlaskConical,
-  GitBranch,
-  ShieldCheck,
-} from "lucide-react";
+import { FlaskConical, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { metricsSchema } from "@/lib/contracts";
-import { compact } from "@/lib/utils";
-import { ErrorState, LoadingState } from "./status";
-import { Button } from "./ui/button";
+import { useLanguage } from "./language";
+import { LoadingState, ErrorState } from "./status";
 export function ModelPerformance() {
+  const { t, n } = useLanguage();
   const query = useQuery({
     queryKey: ["model-metrics"],
     queryFn: () => api("model/metrics", metricsSchema),
@@ -27,185 +21,191 @@ export function ModelPerformance() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">EVIDENCE BEFORE CONFIDENCE</span>
-          <h1>
-            Model performance<span className="heading-period">.</span>
-          </h1>
-          <p>Verified artifact metadata and holdout evaluation.</p>
+          <span className="eyebrow">
+            {t(
+              "METHODOLOGY / RESEARCH BASELINE",
+              "روش‌شناسی / مدل پایه پژوهشی",
+            )}
+          </span>
+          <h1>{t("Model & Methodology", "مدل و روش‌شناسی")}</h1>
+          <p>
+            {t(
+              "Verified artifact metadata, measured evaluation and the limits behind an estimate.",
+              "فراداده مدل تأییدشده، ارزیابی اندازه‌گیری‌شده و محدودیت‌های برآورد.",
+            )}
+          </p>
         </div>
-        <span className="dataset-badge">
-          <Activity size={12} />
-          {m.status.available ? "ARTIFACT CONNECTED" : "NO ARTIFACT"}
-        </span>
       </div>
       <div className="model-notice">
-        <FlaskConical size={20} />
+        <FlaskConical size={24} />
         <div>
           <strong>
             {m.status.mode === "illustrative"
-              ? "Smoke-test evaluation only"
-              : "Model provenance"}
+              ? t("Illustrative smoke-test model", "مدل نمایشی برای آزمون")
+              : t(
+                  "A research estimate, not a certified valuation",
+                  "برآورد پژوهشی، نه ارزش‌گذاری تأییدشده",
+                )}
           </strong>
           <p>
-            {m.status.message}
-            {m.status.mode === "illustrative"
-              ? " Two illustrative test records cannot establish real-world accuracy."
-              : ""}
+            {t(
+              "The approved Random Forest was trained on a limited historical subset. The larger searchable archive is not its training population. No accuracy for every city or current market is claimed.",
+              "جنگل تصادفی تأییدشده روی نمونه تاریخی محدودی آموزش دیده است. آرشیو بزرگ‌تر قابل جستجو، داده آموزشی این مدل نیست. دقت برای تمام شهرها یا بازار امروز ادعا نمی‌شود.",
+            )}
           </p>
+          <code dir="ltr">
+            {t("Model version", "نسخه مدل")}: {m.status.version || "—"}
+          </code>
         </div>
       </div>
       {!m.scores ? (
-        <div className="state-card">
-          <Braces size={30} />
-          <h2>No verified evaluation artifact</h2>
+        <section className="state-card">
+          <h2>
+            {t(
+              "No verified evaluation artifact",
+              "نتیجه ارزیابی تأییدشده موجود نیست",
+            )}
+          </h2>
           <p>
-            Configure a trusted model bundle with metadata to inspect its
-            metrics. Scores are never substituted from static examples.
+            {t(
+              "Scores are shown only when provided by the trusted model artifact.",
+              "امتیازها فقط در صورت وجود در مدل تأییدشده نمایش داده می‌شوند.",
+            )}
           </p>
-          <Button variant="outline" onClick={() => query.refetch()}>
-            Check again
-          </Button>
-        </div>
+        </section>
       ) : (
         <>
           <div className="kpi-grid">
             {[
-              { label: "Training records", v: m.train_rows },
-              ...(m.validation_rows != null
-                ? [{ label: "Validation records", v: m.validation_rows }]
-                : []),
-              { label: "Test records", v: m.test_rows },
-              { label: "Eligible sales", v: m.eligible_rows },
-              { label: "Split seed", v: m.seed },
-            ].map((k) => (
-              <div className="kpi-card" key={k.label}>
-                <div className="kpi-label">
-                  {k.label}
-                  <GitBranch size={14} />
-                </div>
-                <strong>{k.v}</strong>
-                <div className="kpi-detail">
-                  Test partition{" "}
-                  {m.test_size !== null ? (m.test_size * 100).toFixed(1) : "—"}%
-                </div>
-              </div>
+              {
+                label: t("Training records", "آگهی‌های آموزش"),
+                value: m.train_rows,
+              },
+              {
+                label: t("Validation records", "آگهی‌های اعتبارسنجی"),
+                value: m.validation_rows,
+              },
+              {
+                label: t("Test records", "آگهی‌های آزمون"),
+                value: m.test_rows,
+              },
+              {
+                label: t(
+                  "Eligible training-source sales",
+                  "فروش‌های معتبر منبع آموزش",
+                ),
+                value: m.eligible_rows,
+              },
+            ].map((c) => (
+              <section className="kpi-card" key={c.label}>
+                <span className="kpi-label">{c.label}</span>
+                <strong>{n(c.value)}</strong>
+                <small className="small-note">
+                  {t(
+                    "Model source subset, not the searchable archive",
+                    "نمونه منبع مدل، نه آرشیو قابل جستجو",
+                  )}
+                </small>
+              </section>
             ))}
           </div>
-          {m.split_method && (
-            <div className="coverage-notice">
-              <strong>Evaluation design</strong>
-              <p>
-                {m.split_method.replaceAll("_", " ")} · Validation selects leaf
-                size; test data stays held out.
-              </p>
-              <code>
-                Dataset revision {m.source_revision || "Not recorded"}
-              </code>
-              {m.validation_metrics && (
-                <p>
-                  Validation MAE: {compact(m.validation_metrics.mae)} source
-                  units. Per-city metrics require at least 30 test records;
-                  inspect artifact metadata.
-                </p>
-              )}
-            </div>
-          )}
           <section className="table-panel metrics-table">
             <div className="table-toolbar">
-              <h2>Random Forest vs. median baseline</h2>
-              <span className="small-note">Same held-out test partition</span>
+              <h2>
+                {t(
+                  "Random Forest vs. median baseline",
+                  "جنگل تصادفی در برابر مدل میانه",
+                )}
+              </h2>
+              <span className="small-note">
+                {t("Same held-out test set", "مجموعه آزمون مشترک و مستقل")}
+              </span>
             </div>
             <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th>Estimator</th>
+                    <th>{t("Estimator", "مدل")}</th>
                     <th>MAE ↓</th>
                     <th>RMSE ↓</th>
                     <th>R² ↑</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(m.scores).map(([name, scores]) => (
+                  {Object.entries(m.scores).map(([name, s]) => (
                     <tr key={name}>
                       <td>
-                        <span
-                          className={`model-dot ${name === "random_forest" ? "forest" : ""}`}
-                        />
-                        <strong>
-                          {name === "random_forest"
-                            ? "Random Forest"
-                            : "Training-median baseline"}
-                        </strong>
+                        {name === "random_forest"
+                          ? t("Random Forest", "جنگل تصادفی")
+                          : t(
+                              "Training-median baseline",
+                              "مدل پایه میانه آموزش",
+                            )}
                       </td>
-                      <td title={String(scores.mae)}>{compact(scores.mae)}</td>
-                      <td title={String(scores.rmse)}>
-                        {compact(scores.rmse)}
+                      <td title={String(s.mae)}>{n(s.mae, true)}</td>
+                      <td title={String(s.rmse)}>{n(s.rmse, true)}</td>
+                      <td>
+                        <bdi>{n(s.r2, false, 6)}</bdi>
                       </td>
-                      <td>{scores.r2.toFixed(6)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="metric-footnote">
-              MAE and RMSE retain source price units. Lower is better. R² may be
-              negative; these scores describe this split only.
-            </p>
           </section>
-          <div className="model-info-grid">
-            <section className="info-panel">
-              <h2>
-                <ShieldCheck size={17} />
-                Artifact provenance
-              </h2>
-              <dl>
-                <dt>Model version</dt>
-                <dd>
-                  <code>{m.status.version}</code>
-                </dd>
-                <dt>Input records</dt>
-                <dd>{m.input_rows}</dd>
-                <dt>Source SHA-256</dt>
-                <dd>
-                  <code className="hash-text">{m.source_sha256}</code>
-                </dd>
-                {Object.entries(m.versions).map(([name, v]) => (
-                  <div className="version-row" key={name}>
-                    <dt>{name}</dt>
-                    <dd>{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-            <section className="info-panel">
-              <h2>
-                <Braces size={17} />
-                Feature contract
-              </h2>
-              <div className="feature-chips">
-                {m.features.map((f) => (
-                  <code key={f}>{f}</code>
-                ))}
-              </div>
-              <p>
-                Imputation and encoding are fitted within the training pipeline.
-                The artifact retains its training-partition fit.
-              </p>
-            </section>
-          </div>
-          <div className="source-strip">
-            <Activity size={18} />
-            <div>
-              <strong>Residuals are not available</strong>
-              <p>
-                No verified per-record evaluation artifact was exported. A
-                residual plot is intentionally omitted.
-              </p>
-            </div>
-          </div>
         </>
       )}
+      <div className="model-meta">
+        <section className="panel">
+          <ShieldCheck size={21} className="text-accent" />
+          <h3>{t("How estimation works", "روش برآورد")}</h3>
+          <p>
+            {t(
+              "The fitted preprocessing pipeline handles missing details, then the existing Random Forest estimates historical asking price. A separate search ranks same-city, same-type properties; their median is descriptive.",
+              "پیش‌پردازش آموزش‌دیده مقادیر نامشخص را مدیریت می‌کند؛ سپس جنگل تصادفی موجود قیمت پیشنهادی تاریخی را برآورد می‌کند. جستجویی جداگانه املاک هم‌شهر و هم‌نوع را رتبه‌بندی می‌کند؛ میانه آن‌ها توصیفی است.",
+            )}
+          </p>
+          <p>
+            {t(
+              "MAE and RMSE are measured in original price units. Lower is better. R² describes explained test-set variation and can be negative.",
+              "MAE و RMSE با واحد اصلی قیمت اندازه‌گیری می‌شوند؛ مقدار کمتر بهتر است. R² تغییرات توضیح‌داده‌شده در آزمون را بیان می‌کند و می‌تواند منفی باشد.",
+            )}
+          </p>
+        </section>
+        <section className="panel">
+          <h3>
+            {t(
+              "Limitations & responsible use",
+              "محدودیت‌ها و استفاده مسئولانه",
+            )}
+          </h3>
+          <p>
+            {t(
+              "Historical asking prices are not completed sales. Currency units are unverified. No calibrated confidence interval or universal city-level validation is available. Do not use this estimate alone for a financial decision.",
+              "قیمت‌های پیشنهادی تاریخی، قیمت معامله قطعی نیستند. واحد پول تأیید نشده است. بازه اطمینان کالیبره‌شده یا اعتبارسنجی برای همه شهرها موجود نیست. این برآورد را تنها مبنای تصمیم مالی قرار ندهید.",
+            )}
+          </p>
+          <p>
+            {t("Evaluation split", "تقسیم ارزیابی")}:{" "}
+            <bdi>{m.split_method || "—"}</bdi>
+          </p>
+          <code dir="ltr">
+            {t("Training-source revision", "نسخه منبع آموزش")}:{" "}
+            {m.source_revision || "—"}
+          </code>
+        </section>
+        <details className="panel panel-body">
+          <summary>
+            {t("Feature and runtime metadata", "ویژگی‌ها و فراداده اجرا")}
+          </summary>
+          <p className="small-note">{m.features.join(" · ")}</p>
+          <code dir="ltr">
+            {Object.entries(m.versions || {})
+              .map(([k, v]) => k + " " + v)
+              .join(" / ")}
+          </code>
+        </details>
+      </div>
     </>
   );
 }

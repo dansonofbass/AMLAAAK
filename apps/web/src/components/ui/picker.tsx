@@ -3,6 +3,7 @@ import { useId, useState, useEffect } from "react";
 import * as Select from "@radix-ui/react-select";
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
+import { useLanguage } from "../language";
 type Option = { value: string; label: string };
 type Props = {
   value: string;
@@ -24,6 +25,7 @@ export function Picker({
   searchable = false,
   placeholder = "Choose…",
 }: Props) {
+  const { t, rtl } = useLanguage();
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState(""),
     [active, setActive] = useState(0);
@@ -71,12 +73,16 @@ export function Picker({
               align="start"
               sideOffset={7}
               collisionPadding={12}
+              dir={rtl ? "rtl" : "ltr"}
             >
               <label className="picker-search">
                 <Search size={14} />
                 <input
                   autoComplete="off"
-                  aria-label={`Search ${label.toLowerCase()}`}
+                  aria-label={t(
+                    `Search ${label.toLowerCase()}`,
+                    `جستجوی ${label}`,
+                  )}
                   aria-controls={id}
                   aria-activedescendant={
                     filtered[active] ? `${id}-${active}` : undefined
@@ -86,7 +92,7 @@ export function Picker({
                     setSearch(e.target.value);
                     setActive(0);
                   }}
-                  placeholder="Search by name…"
+                  placeholder={t("Search by name…", "جستجو با نام…")}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowDown") {
                       e.preventDefault();
@@ -128,12 +134,18 @@ export function Picker({
                   ))
                 ) : (
                   <p className="picker-empty">
-                    No options in retrieved records
+                    {t(
+                      "No options in retrieved records",
+                      "گزینه‌ای در داده‌های دریافت‌شده یافت نشد",
+                    )}
                   </p>
                 )}
               </div>
               <span className="picker-help">
-                ↑ ↓ to navigate · Enter to select · Esc to close
+                {t(
+                  "↑ ↓ to navigate · Enter to select · Esc to close",
+                  "کلیدهای جهت برای حرکت · Enter برای انتخاب · Esc برای بستن",
+                )}
               </span>
             </Popover.Content>
           </Popover.Portal>
@@ -143,6 +155,7 @@ export function Picker({
   }
   return (
     <Select.Root
+      dir={rtl ? "rtl" : "ltr"}
       value={value || "__all__"}
       onValueChange={(v) => onChange(v === "__all__" ? "" : v)}
       name={name}

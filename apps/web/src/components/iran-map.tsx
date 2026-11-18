@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
+import { useLanguage } from "./language";
 import {
   MapContainer,
   GeoJSON,
@@ -11,13 +12,12 @@ import {
 } from "react-leaflet";
 import type { FeatureCollection } from "geojson";
 import type { City } from "@/lib/contracts";
-import { compact, title } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
 import { containsPoint } from "@/lib/geography";
 
 function markerColor(count: number, min: number, max: number) {
   const ratio = (count - min) / Math.max(1, max - min);
-  return `rgb(${Math.round(156 - 86 * ratio)}, ${Math.round(138 + 75 * ratio)}, ${Math.round(250 - 27 * ratio)})`;
+  return ratio > 0.66 ? "#76b7e8" : "#4d9bd6";
 }
 function MapSync({
   selected,
@@ -49,7 +49,7 @@ function MapSync({
   }, [map]);
   return null;
 }
-export default function IranMap({
+function IranMap({
   cities,
   selected,
   onSelect,
@@ -60,11 +60,13 @@ export default function IranMap({
   onSelect: (city: string) => void;
   reset?: number;
 }) {
+  const { t, n, city: cityName, rtl } = useLanguage();
   const [geometry, setGeometry] = useState<FeatureCollection | null>(null);
   const [error, setError] = useState(false);
   const [provinces, setProvinces] = useState<FeatureCollection | null>(null);
-  const mappedCities = cities.filter(
-    (c) => c.latitude !== null && c.longitude !== null,
+  const mappedCities = useMemo(
+    () => cities.filter((c) => c.latitude !== null && c.longitude !== null),
+    [cities],
   );
   const maxCount = Math.max(1, ...mappedCities.map((c) => c.count));
   const minCount = Math.min(maxCount, ...mappedCities.map((c) => c.count));
@@ -89,7 +91,10 @@ export default function IranMap({
   return (
     <div
       className="map-surface"
-      aria-label="Interactive Iran city aggregation map"
+      aria-label={t(
+        "Interactive Iran city aggregation map",
+        "نقشه تعاملی شهرهای ایران",
+      )}
     >
       <MapContainer
         center={[32.5, 54.5]}
@@ -106,9 +111,9 @@ export default function IranMap({
           <GeoJSON
             data={geometry}
             style={(f) => ({
-              color: f?.properties.name === "Iran" ? "#499ba6" : "#3b4453",
+              color: f?.properties.name === "Iran" ? "#344351" : "#273441",
               weight: 1,
-              fillColor: f?.properties.name === "Iran" ? "#205663" : "#202632",
+              fillColor: f?.properties.name === "Iran" ? "#151e27" : "#0e161e",
               fillOpacity: f?.properties.name === "Iran" ? 0.8 : 0.7,
             })}
             attribution='<a href="https://www.naturalearthdata.com/">Natural Earth</a> · City centers only'
@@ -124,12 +129,12 @@ export default function IranMap({
           );
           return (
             <GeoJSON
-              key={`${feature.properties?.shapeID}-${selectedInside}`}
+              key={`${feature.properties?.shapeID}-${selectedInside}-${rtl}`}
               data={feature}
               style={{
-                color: selectedInside ? "#b6a4ff" : "#648b9b",
+                color: selectedInside ? "#76b7e8" : "#344351",
                 weight: selectedInside ? 2.5 : 0.8,
-                fillColor: selectedInside ? "#7867b9" : "#28616e",
+                fillColor: selectedInside ? "#4d9bd6" : "#151e27",
                 fillOpacity: selectedInside ? 0.42 : 0.14,
                 className: `province-boundary ${selectedInside ? "province-selected" : ""}`,
               }}
@@ -145,7 +150,10 @@ export default function IranMap({
                   ).getElement?.();
                   if (element) {
                     element.setAttribute("data-province", name);
-                    element.setAttribute("aria-label", `${name} province`);
+                    element.setAttribute(
+                      "aria-label",
+                      t(`${name} province`, `استان ${name}`),
+                    );
                     element.setAttribute("tabindex", "0");
                     element.setAttribute("role", "button");
                     element.addEventListener("keydown", (event) => {
@@ -158,23 +166,39 @@ export default function IranMap({
               attribution='<a href="https://www.geoboundaries.org/">geoBoundaries</a> · OSM / ODbL · ADM1 provinces (2017)'
             >
               <Tooltip direction="top" sticky>
-                <strong>{name} · province (ADM1)</strong>
+                <strong>
+                  {name} · {t("province (ADM1)", "استان (ADM1)")}
+                </strong>
                 <br />
                 {inside.length
                   ? inside
                       .map(
-                        (c) => `${title(c.city)}: ${c.count} retrieved sales`,
+                        (c) =>
+                          `${cityName(c.city)}: ${n(c.count)} ${t("historical sales", "فروش تاریخی")}`,
                       )
                       .join(" · ")
-                  : "No mapped-city records in current selection"}
+                  : t(
+                      "No mapped-city records in this selection",
+                      "آگهی از شهرهای نقشه در این انتخاب موجود نیست",
+                    )}
                 <br />
                 <small>
-                  Only represented city counts, not province-wide totals.
+                  {t(
+                    "Represented city counts only, not province totals.",
+                    "فقط تعداد شهرهای نمایش‌داده‌شده، نه کل استان.",
+                  )}
                 </small>
               </Tooltip>
               <Popup>
-                <strong>{name} province</strong>
-                <p>Choose a represented city:</p>
+                <strong>
+                  {name} · {t("province", "استان")}
+                </strong>
+                <p>
+                  {t(
+                    "Choose a represented city:",
+                    "شهر مورد نظر را انتخاب کنید:",
+                  )}
+                </p>
                 {inside.length ? (
                   inside.map((c) => (
                     <button
@@ -182,19 +206,25 @@ export default function IranMap({
                       key={c.city}
                       onClick={() => onSelect(c.city)}
                     >
-                      {title(c.city)} · {c.count} retrieved records
+                      {cityName(c.city)} · {n(c.count)}{" "}
+                      {t("historical records", "آگهی تاریخی")}
                     </button>
                   ))
                 ) : (
-                  <span>No mapped city candidates in this window.</span>
+                  <span>
+                    {t(
+                      "No mapped cities in this selection.",
+                      "شهر روی نقشه در این انتخاب موجود نیست.",
+                    )}
+                  </span>
                 )}
               </Popup>
             </GeoJSON>
           );
         })}
-        {mappedCities.map((city, i) => (
+        {mappedCities.map((city) => (
           <CircleMarker
-            key={city.city}
+            key={city.city + String(rtl)}
             center={[city.latitude!, city.longitude!]}
             radius={7 + Math.sqrt(city.count / maxCount) * 16}
             pathOptions={{
@@ -203,28 +233,41 @@ export default function IranMap({
               fillOpacity: 0.48,
               weight: 2,
             }}
-            eventHandlers={{ click: () => onSelect(city.city) }}
+            eventHandlers={{
+              click: () => onSelect(city.city),
+              add: (e) => {
+                const element = e.target.getElement?.();
+                if (element) {
+                  element.setAttribute("tabindex", "0");
+                  element.setAttribute("role", "button");
+                  element.setAttribute("data-city", city.city);
+                  element.setAttribute(
+                    "aria-label",
+                    t("Select ", "انتخاب ") + cityName(city.city),
+                  );
+                  element.addEventListener(
+                    "keydown",
+                    (event: KeyboardEvent) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(city.city);
+                      }
+                    },
+                  );
+                }
+              },
+            }}
           >
             <Tooltip
-              permanent={
-                !mappedCities
-                  .slice(0, i)
-                  .some(
-                    (c) =>
-                      c.latitude !== null &&
-                      c.longitude !== null &&
-                      Math.abs(c.latitude - city.latitude!) < 0.7 &&
-                      Math.abs(c.longitude - city.longitude!) < 0.7,
-                  )
-              }
+              permanent={selected === city.city}
               direction="top"
               offset={[0, -12]}
               className="city-map-label"
             >
-              <strong>{title(city.city)}</strong>
+              <strong>{cityName(city.city)}</strong>
               <span>
-                {city.count} sale{city.count === 1 ? "" : "s"} ·{" "}
-                {compact(city.median_price_per_sqm)}/m²
+                {n(city.count)} {t("sales", "فروش")} ·{" "}
+                {n(city.median_price_per_sqm, true)}/m²
               </span>
             </Tooltip>
           </CircleMarker>
@@ -232,11 +275,14 @@ export default function IranMap({
       </MapContainer>
       {error && (
         <div className="map-error">
-          Country boundaries could not load. City markers remain available.
+          {t(
+            "Boundaries could not load. City markers remain available.",
+            "مرزها دریافت نشدند؛ نشانگرهای شهر همچنان در دسترس‌اند.",
+          )}
         </div>
       )}
-      <span className="map-country-label">I R A N</span>
-      <span className="map-sea-label">PERSIAN GULF</span>
+      <span className="map-country-label">{rtl ? "ایران" : "I R A N"}</span>
     </div>
   );
 }
+export default memo(IranMap);

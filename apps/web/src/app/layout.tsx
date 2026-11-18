@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { WorkspaceProvider } from "@/components/workspace";
 import { Shell } from "@/components/shell";
-import { Roboto, Vazirmatn } from "next/font/google";
+import { Roboto, Vazirmatn, Orbitron } from "next/font/google";
+import { LanguageProvider } from "@/components/language";
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 const roboto = Roboto({
   subsets: ["latin"],
   variable: "--font-roboto",
@@ -25,14 +31,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${roboto.variable} ${persian.variable}`}>
+    <html
+      lang="en"
+      dir="ltr"
+      className={`${roboto.variable} ${persian.variable} ${orbitron.variable}`}
+    >
       <body>
-        <a href="#main-content" className="skip-link">
-          Skip to workspace
-        </a>
-        <WorkspaceProvider>
-          <Shell>{children}</Shell>
-        </WorkspaceProvider>
+        <LanguageProvider>
+          <WorkspaceProvider>
+            <Shell>{children}</Shell>
+          </WorkspaceProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

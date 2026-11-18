@@ -2,352 +2,227 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  Building2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Command,
-  Database,
-  Fingerprint,
-  Globe2,
   LayoutDashboard,
-  MapPin,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
+  Calculator,
+  Building2,
+  ChartNoAxesCombined,
+  Menu,
   X,
+  Languages,
+  Database,
+  BookOpen,
+  ArrowUpRight,
 } from "lucide-react";
-import { useAnalytics, useWorkspace, useFacets } from "./workspace";
-import { Picker } from "./ui/picker";
 import { BrandSymbol } from "./brand";
-import { Button } from "./ui/button";
-import { compact, title } from "@/lib/utils";
-const nav = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/analytics", label: "Market analytics", icon: BarChart3 },
-  { href: "/properties", label: "Properties", icon: Building2 },
-  { href: "/predict", label: "Price prediction", icon: Sparkles },
-  { href: "/model", label: "Model performance", icon: Activity },
-];
+import { useLanguage } from "./language";
 export function Shell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [expanded, setExpanded] = useState(false);
-  const [insights, setInsights] = useState<boolean | null>(null);
-  const toggleInsights = () =>
-    setInsights((value) =>
-      value === null ? window.matchMedia("(max-width:1050px)").matches : !value,
-    );
-  const { filters, setFilters } = useWorkspace();
-  const { summary, cities } = useAnalytics();
-  const data = summary.data;
-  const facets = useFacets();
-  const active = nav.find((n) => n.href === pathname) || nav[0];
-  return (
-    <div className="app-frame">
-      <header className="app-header">
-        <Link href="/" className="brand">
-          <BrandSymbol size={31} />
-          AMLAAAK<span className="brand-dot">.</span>
-        </Link>
-        <div className="header-breadcrumb">
-          <span className="header-divider" /> <Globe2 size={15} />
-          <span>Real estate intelligence</span>
-          <ChevronRight size={12} />
-          <strong>{active.label}</strong>
-        </div>
-        <div className="header-end">
-          <span className="environment">
-            <i />
-            Research workspace
-          </span>
-          <button
-            className="avatar"
-            onClick={toggleInsights}
-            aria-label="Toggle insights panel"
-          >
-            A
-          </button>
-        </div>
-      </header>
-      <div
-        className={`app-body ${expanded ? "nav-expanded" : ""} ${insights === false ? "insights-hidden" : ""} ${insights === true ? "insights-open" : ""}`}
-      >
-        <aside className="navigation">
-          <Link href="/" className="sidebar-brand" aria-label="AMLAAAK home">
-            <BrandSymbol size={30} />
-            {expanded && <span>AMLAAAK</span>}
-          </Link>
-          <button
-            className="nav-toggle"
-            onClick={() => setExpanded(!expanded)}
-            aria-label={expanded ? "Collapse navigation" : "Expand navigation"}
-          >
-            {expanded ? (
-              <PanelLeftClose size={18} />
-            ) : (
-              <PanelLeftOpen size={18} />
+  const path = usePathname();
+  const { t, language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const links = [
+    {
+      href: "/",
+      label: t("Overview", "\u0646\u0645\u0627\u06cc \u06a9\u0644\u06cc"),
+      icon: LayoutDashboard,
+    },
+    {
+      href: "/predict",
+      label: t(
+        "Price Estimator",
+        "\u0628\u0631\u0622\u0648\u0631\u062f \u0642\u06cc\u0645\u062a",
+      ),
+      icon: Calculator,
+    },
+    {
+      href: "/properties",
+      label: t(
+        "Explore Properties",
+        "\u062c\u0633\u062a\u062c\u0648\u06cc \u0645\u0644\u06a9",
+      ),
+      icon: Building2,
+    },
+    {
+      href: "/analytics",
+      label: t(
+        "Market Analytics",
+        "\u062a\u062d\u0644\u06cc\u0644 \u0628\u0627\u0632\u0627\u0631",
+      ),
+      icon: ChartNoAxesCombined,
+    },
+  ];
+  const navigation = (
+    <>
+      <Link href="/" className="brand" onClick={() => setOpen(false)}>
+        <BrandSymbol />
+        <span>
+          <strong>AMLAAAK</strong>
+          <small>
+            {t(
+              "REAL ESTATE INTELLIGENCE",
+              "\u0647\u0648\u0634\u0645\u0646\u062f\u06cc \u0628\u0627\u0632\u0627\u0631 \u0645\u0633\u06a9\u0646",
             )}
-          </button>
-          <nav aria-label="Main navigation">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-item ${pathname === item.href ? "active" : ""}`}
-                title={item.label}
-                aria-current={pathname === item.href ? "page" : undefined}
-              >
-                <item.icon size={19} />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-          <div className="nav-bottom">
-            <a
-              href="https://huggingface.co/datasets/divarofficial/real_estate_ads"
-              target="_blank"
-              rel="noreferrer"
-              className="nav-item"
-              title="Official dataset"
-            >
-              <Database size={18} />
-              <span>Data source</span>
-            </a>
-            <span className="nav-version">v1.0</span>
-          </div>
-        </aside>
-        <main id="main-content" className="workspace">
-          <div className="workspace-toolbar">
-            <div className="view-tab">
-              <active.icon size={15} />
-              {active.label}
-              <ChevronDown size={12} />
-            </div>
-            <div className="toolbar-actions">
-              <label className="search-box">
-                <Search size={14} />
-                <input
-                  aria-label="Search listings"
-                  placeholder="Search city or property…"
-                  value={filters.search || ""}
-                  onChange={(e) =>
-                    setFilters({ ...filters, search: e.target.value })
-                  }
-                />
-                <Command size={12} />
-              </label>
-              <label className="city-select">
-                <MapPin size={13} />
-                <Picker
-                  searchable
-                  label="Selected city"
-                  value={filters.city || ""}
-                  onChange={(city) =>
-                    setFilters({
-                      ...filters,
-                      city: city || undefined,
-                      neighborhood: undefined,
-                    })
-                  }
-                  options={[
-                    { value: "", label: "All cities" },
-                    ...(
-                      facets.data?.cities ||
-                      data?.available_cities ||
-                      []
-                    ).map((city) => ({ value: city, label: title(city) })),
-                  ]}
-                />
-              </label>
-              <button
-                className="insights-toggle"
-                onClick={toggleInsights}
-                aria-label="Toggle insights"
-              >
-                <SlidersHorizontal size={17} />
-              </button>
-            </div>
-          </div>
-          <div className="page-content">{children}</div>
-          <footer className="workspace-footer">
-            <span>
-              <i />{" "}
-              {data
-                ? data.provenance.kind === "illustrative"
-                  ? "Illustrative sample · Not live market data"
-                  : data.provenance.provider === "prepared"
-                    ? "Prepared historical archive · not active listings"
-                    : "Retrieved historical Divar records · bounded coverage"
-                : "Connecting to data source"}
-            </span>
-            <span>Original source units · Currency unverified</span>
-          </footer>
-        </main>
-        {insights !== false && (
-          <aside className="insights-panel" aria-label="Contextual insights">
-            <header>
-              <span className="insight-symbol">
-                <Sparkles size={18} />
-              </span>
-              <strong>Market lens</strong>
-              <span className="rule-badge">RULE BASED</span>
-              <button
-                aria-label="Close insights"
-                onClick={() => setInsights(false)}
-              >
-                <X size={15} />
-              </button>
-            </header>
-            <div className="insights-content">
-              <div className="insight-intro">
-                <span className="eyebrow">CONTEXTUAL INSIGHTS</span>
-                <h2>
-                  A clearer view of
-                  <br />
-                  your property data.
-                </h2>
-                <p>
-                  Calculated from the current selection.
-                  <br />
-                  No generative AI or market forecasts.
-                </p>
-              </div>
-              <section className="insight-card">
-                <div className="insight-card-heading">
-                  <span className="status-dot" />
-                  Selection summary
-                  <ChevronDown size={13} />
-                </div>
-                {data ? (
-                  <>
-                    <div className="insight-number">
-                      {data.count}
-                      <span>eligible listings</span>
-                    </div>
-                    <p>
-                      {filters.city
-                        ? title(filters.city)
-                        : `${data.cities_count} cities`}{" "}
-                      ·{" "}
-                      {filters.property_type
-                        ? filters.property_type === "apartment-sell"
-                          ? "Apartments"
-                          : "Houses / villas"
-                        : "Residential sales"}
-                    </p>
-                    <div className="mini-city-bars">
-                      {cities.data?.slice(0, 4).map((city, i) => (
-                        <button
-                          key={city.city}
-                          onClick={() =>
-                            setFilters({
-                              ...filters,
-                              city: city.city,
-                              neighborhood: undefined,
-                            })
-                          }
-                        >
-                          <span>{title(city.city)}</span>
-                          <div>
-                            <i
-                              style={{
-                                width: `${(city.count / Math.max(1, ...(cities.data || []).map((c) => c.count))) * 100}%`,
-                                background: i === 0 ? "#8c7bfa" : "#3cbccc",
-                              }}
-                            />
-                          </div>
-                          <b>{city.count}</b>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <p>
-                    {summary.isError
-                      ? "Data source unavailable. Review the dashboard error."
-                      : "Loading verified aggregates…"}
-                  </p>
-                )}
-              </section>
-              {data && (
-                <section className="observation">
-                  <span className="insight-icon">
-                    <BarChart3 size={15} />
-                  </span>
-                  <h3>Asking price snapshot</h3>
-                  <p>
-                    The median asking price is{" "}
-                    <strong>{compact(data.median_price)}</strong>, with a median
-                    of <strong>{compact(data.median_price_per_sqm)}</strong> per
-                    m² in original source units.
-                  </p>
-                  <span className="small-note">
-                    {data.count < 30
-                      ? "Small sample. No statistical market inference."
-                      : "Descriptive snapshot, not a market forecast."}
-                  </span>
-                </section>
-              )}
-              <section className="provenance-card">
-                <ShieldCheck size={18} />
-                <h3>Know what you’re looking at</h3>
-                <p>
-                  {data?.provenance.note ||
-                    "Data provenance is unavailable until the backend connects."}
-                </p>
-                <div className="provenance-line">
-                  <span>Model</span>
-                  <b>
-                    {data?.model.available
-                      ? data.model.mode === "illustrative"
-                        ? "Demo artifact"
-                        : "Loaded"
-                      : "Unavailable"}
-                  </b>
-                </div>
-                <div className="provenance-line">
-                  <span>Source revision</span>
-                  <code title={data?.provenance.revision}>
-                    {data?.provenance.revision.slice(0, 12) || "—"}
-                  </code>
-                </div>
-                <Link href="/model">
-                  Inspect model provenance <ArrowUpRight size={12} />
-                </Link>
-              </section>
-              <div className="suggested-actions">
-                <span className="eyebrow">EXPLORE FURTHER</span>
-                <Link href="/analytics">
-                  Compare city asking prices <ChevronRight size={13} />
-                </Link>
-                <Link href="/predict">
-                  Explore the price model <ChevronRight size={13} />
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFilters({})}
-                >
-                  Reset all filters <ChevronLeft size={12} />
-                </Button>
-              </div>
-              <div className="insight-disclaimer">
-                <Fingerprint size={16} />
-                <p>
-                  Privacy first. No advertiser details, listing descriptions, or
-                  exact property locations.
-                </p>
-              </div>
-            </div>
-          </aside>
+          </small>
+        </span>
+      </Link>
+      <nav
+        className="primary-nav"
+        aria-label={t("Main navigation", "?????? ????")}
+      >
+        {links.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            aria-current={path === href ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <Icon size={19} />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="sidebar-secondary">
+        <p>
+          {t(
+            "ABOUT AMLAAAK",
+            "\u062f\u0631\u0628\u0627\u0631\u0647 \u0627\u0645\u0644\u0627\u06a9",
+          )}
+        </p>
+        <Link
+          href="/model"
+          aria-current={path === "/model" ? "page" : undefined}
+          onClick={() => setOpen(false)}
+        >
+          <BookOpen size={17} />
+          {t(
+            "Model & Methodology",
+            "\u0645\u062f\u0644 \u0648 \u0631\u0648\u0634\u200c\u0634\u0646\u0627\u0633\u06cc",
+          )}
+        </Link>
+        <a
+          href="https://github.com/dansonofbass/AMLAAAK#readme"
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t("Documentation", "\u0645\u0633\u062a\u0646\u062f\u0627\u062a")}
+          <ArrowUpRight size={15} />
+        </a>
+      </div>
+      <div className="sidebar-note">
+        <Database size={19} />
+        <strong>
+          {t(
+            "Historical perspective.",
+            "\u0646\u06af\u0627\u0647\u06cc \u0628\u0647 \u062f\u0627\u062f\u0647\u200c\u0647\u0627\u06cc \u06af\u0630\u0634\u062a\u0647.",
+          )}
+        </strong>
+        <p>
+          {t(
+            "Asking prices, not completed transactions.",
+            "\u0642\u06cc\u0645\u062a\u200c\u0647\u0627\u06cc \u067e\u06cc\u0634\u0646\u0647\u0627\u062f\u06cc\u060c \u0646\u0647 \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0642\u0637\u0639\u06cc.",
+          )}
+        </p>
+      </div>
+    </>
+  );
+  return (
+    <div className="application">
+      <a href="#main-content" className="skip-link">
+        {t(
+          "Skip to content",
+          "\u0631\u0641\u062a\u0646 \u0628\u0647 \u0645\u062d\u062a\u0648\u0627",
         )}
+      </a>
+      <aside className="sidebar">{navigation}</aside>
+      <div className="workspace">
+        <header className="app-header">
+          <div className="header-start">
+            <Dialog.Root open={open} onOpenChange={setOpen}>
+              <Dialog.Trigger asChild>
+                <button
+                  className="button button-ghost button-icon mobile-menu"
+                  aria-label={t(
+                    "Open navigation",
+                    "\u0628\u0627\u0632 \u06a9\u0631\u062f\u0646 \u0645\u0646\u0648",
+                  )}
+                >
+                  <Menu size={21} />
+                </button>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay className="drawer-overlay" />
+                <Dialog.Content className="mobile-drawer">
+                  <Dialog.Title className="sr-only">
+                    {t("Navigation", "\u0645\u0646\u0648")}
+                  </Dialog.Title>
+                  <Dialog.Description className="sr-only">
+                    {t(
+                      "Choose an application page.",
+                      "\u0635\u0641\u062d\u0647 \u0645\u0648\u0631\u062f \u0646\u0638\u0631 \u0631\u0627 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646\u06cc\u062f.",
+                    )}
+                  </Dialog.Description>
+                  <Dialog.Close
+                    className="drawer-close button button-ghost button-icon"
+                    aria-label={t(
+                      "Close navigation",
+                      "\u0628\u0633\u062a\u0646 \u0645\u0646\u0648",
+                    )}
+                  >
+                    <X size={20} />
+                  </Dialog.Close>
+                  {navigation}
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
+            <span className="header-context">
+              {links.find((l) => l.href === path)?.label ||
+                t(
+                  "Model & Methodology",
+                  "\u0645\u062f\u0644 \u0648 \u0631\u0648\u0634\u200c\u0634\u0646\u0627\u0633\u06cc",
+                )}
+            </span>
+          </div>
+          <div className="header-actions">
+            <span className="historical-tag">
+              <Database size={14} />
+              {t(
+                "Historical data",
+                "\u062f\u0627\u062f\u0647\u200c\u0647\u0627\u06cc \u062a\u0627\u0631\u06cc\u062e\u06cc",
+              )}
+            </span>
+            <button
+              className="button button-outline language-toggle"
+              onClick={() => setLanguage(language === "en" ? "fa" : "en")}
+              aria-label={t(
+                "Switch to Persian",
+                "\u062a\u063a\u06cc\u06cc\u0631 \u0632\u0628\u0627\u0646 \u0628\u0647 \u0627\u0646\u06af\u0644\u06cc\u0633\u06cc",
+              )}
+            >
+              <Languages size={17} />
+              <span lang={language === "en" ? "fa" : "en"}>
+                {language === "en" ? "فارسی" : "English"}
+              </span>
+            </button>
+          </div>
+        </header>
+        <main id="main-content" tabIndex={-1} className="main-content">
+          {children}
+        </main>
+        <footer className="app-footer">
+          <span>
+            {t(
+              "Historical asking prices · Currency units unverified",
+              "قیمت‌های پیشنهادی تاریخی · واحد پول تأیید نشده",
+            )}
+          </span>
+          <Link href="/model">
+            {t(
+              "Methodology & limitations",
+              "\u0631\u0648\u0634\u200c\u0634\u0646\u0627\u0633\u06cc \u0648 \u0645\u062d\u062f\u0648\u062f\u06cc\u062a\u200c\u0647\u0627",
+            )}
+          </Link>
+        </footer>
       </div>
     </div>
   );

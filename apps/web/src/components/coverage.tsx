@@ -1,79 +1,94 @@
-import { Database, History, ScanLine } from "lucide-react";
+"use client";
+import { Database, Info } from "lucide-react";
 import type { Provenance } from "@/lib/contracts";
+import { useLanguage } from "./language";
 export function CoverageNotice({ provenance }: { provenance: Provenance }) {
+  const { t, n } = useLanguage();
   const c = provenance.coverage;
   const prepared = provenance.provider === "prepared";
+  const sample = provenance.kind === "illustrative";
+  if (prepared && !c?.exhaustive)
+    return (
+      <div className="coverage-notice" role="status">
+        <Info size={14} />
+        {t(
+          "Historical archive unavailable. No substitute records were generated.",
+          "آرشیو تاریخی در دسترس نیست. هیچ داده‌ای جایگزین نشده است.",
+        )}
+      </div>
+    );
   return (
-    <section className="coverage-notice" aria-label="Data coverage">
-      <div className="coverage-heading">
-        <Database size={15} />
+    <details className="coverage-notice">
+      <summary>
+        <Database size={14} />
         <strong>
-          {provenance.kind === "illustrative"
-            ? "Offline illustrative records"
+          {sample
+            ? t("Illustrative sample", "نمونه نمایشی")
             : prepared
-              ? "Prepared historical Divar archive"
-              : "Historical Divar records · Hugging Face"}
+              ? t(
+                  "Prepared historical Divar archive",
+                  "آرشیو آماده‌شده تاریخی دیوار",
+                )
+              : t(
+                  "Historical Divar records · bounded retrieval",
+                  "آگهی‌های تاریخی دیوار · دریافت محدود",
+                )}
         </strong>
         <span>
-          {prepared
-            ? c?.exhaustive ? "COMPLETE ARCHIVE QUERY" : "ARCHIVE UNAVAILABLE"
-            : c?.exhaustive ? "COMPLETE WITHIN SOURCE" : "BOUNDED RETRIEVAL"}
+          · {n(provenance.eligible_rows)}{" "}
+          {t("available historical sales", "آگهی فروش")} ·{" "}
+          {t("About this data", "درباره این داده‌ها")}
+          <Info size={12} style={{ display: "inline", marginInlineStart: 5 }} />
         </span>
-      </div>
-      <div className="coverage-facts">
-        <span>
-          <ScanLine size={12} />
-          {prepared && !c?.exhaustive ? (
-            <>Archive retrieval unavailable · no substitute records</>
-          ) : prepared ? (
-            <>
-              {provenance.eligible_rows.toLocaleString("en")} available historical sales ·{" "}
-              {(c?.eligible_records ?? provenance.eligible_rows).toLocaleString("en")} match
-            </>
-          ) : (<>
-          {c?.records_examined ?? provenance.input_rows}
-          {c?.upstream_matching_rows != null
-            ? ` / ${c.upstream_matching_rows.toLocaleString("en")}`
-            : ""}{" "}
-          source rows examined ·{" "}
-          {c?.eligible_records ?? provenance.eligible_rows} eligible
-          </>)}
-        </span>
-        <span>
-          <History size={12} />
-          {provenance.period_start || "Period not recorded"}
-          {provenance.period_end ? ` – ${provenance.period_end}` : ""}
-        </span>
-        <code>rev {provenance.revision.slice(0, 12)}</code>
-      </div>
-      <p>
-        {c?.bounded && !prepared
-          ? "Statistics and sorting describe retrieved records only. Not the entire city or market."
-          : provenance.note}
-      </p>
-      {prepared && c?.exhaustive && (
+      </summary>
+      <div className="coverage-details">
+        <p>
+          {sample
+            ? t(
+                "These are illustrative smoke-test records, not verified Divar observations.",
+                "این داده‌ها نمونه نمایشی برای آزمون هستند، نه آگهی‌های تأییدشده دیوار.",
+              )
+            : prepared
+              ? t(
+                  "Complete query within the configured historical archive; not today’s housing market.",
+                  "جستجوی کامل در آرشیو تاریخی تنظیم‌شده؛ نه بازار امروز مسکن.",
+                )
+              : t(
+                  "Statistics describe only the retrieved source window, not the entire market.",
+                  "آمار فقط مربوط به بخش دریافت‌شده از منبع است، نه کل بازار.",
+                )}
+        </p>
+        <p>
+          {n(provenance.input_rows)}{" "}
+          {t("source rows processed", "ردیف منبع پردازش شده")} ·{" "}
+          {n(c?.eligible_records ?? provenance.eligible_rows)}{" "}
+          {t("matching this selection", "مطابق انتخاب فعلی")} ·{" "}
+          {prepared && c?.source_processing_complete
+            ? t(
+                "Pinned source inventory verified complete.",
+                "فهرست منبع نسخه ثابت کامل تأیید شده است.",
+              )
+            : ""}
+        </p>
+        <p>
+          {t(
+            "Asking prices, not verified transaction prices. Currency units are not independently verified.",
+            "قیمت پیشنهادی است، نه قیمت معامله قطعی. واحد پول به‌طور مستقل تأیید نشده است.",
+          )}
+        </p>
+        <p>
+          {t(
+            "The larger searchable archive was not used to retrain the approved model.",
+            "آرشیو بزرگ‌تر جستجو برای آموزش مجدد مدل تأییدشده استفاده نشده است.",
+          )}
+        </p>
+        <code dir="ltr">
+          {t("Dataset revision", "نسخه داده")}: {provenance.revision}
+        </code>
         <small>
-          {provenance.input_rows.toLocaleString("en")} source rows processed ·{" "}
-          {c?.source_processing_complete
-            ? "Pinned source inventory verified complete."
-            : "Full pinned-source processing has not been verified."}{" "}
-          Select a city before applying numeric or text filters. The model was not retrained.
+          {provenance.period_start || "—"} — {provenance.period_end || "—"}
         </small>
-      )}
-      {provenance.fetched_at && (
-        <small>
-          Retrieved {provenance.fetched_at.slice(0, 19).replace("T", " ")} UTC.
-          Advertisement periods remain historical.
-        </small>
-      )}
-      {c &&
-        !c.remote_filter_supported &&
-        provenance.provider === "huggingface" && (
-          <small>
-            Remote filtering is unavailable. City, neighborhood and numeric
-            filters apply within the retrieved source window.
-          </small>
-        )}
-    </section>
+      </div>
+    </details>
   );
 }
