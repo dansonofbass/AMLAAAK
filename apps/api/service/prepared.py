@@ -4,7 +4,8 @@ Precomputed global aggregates and sorted page chunks avoid full-population loads
 Arbitrary combined filters require a city; guarded city partitions are exhaustive
 within the prepared archive or fail explicitly, never silently truncate.
 """
-from collections import OrderedDict
+from collections import OrderedDict, deque
+from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime, timezone
 import gzip
 import io
@@ -17,9 +18,12 @@ import time
 import httpx
 from .analytics import Repository, CITY_CENTERS
 from .huggingface import UpstreamUnavailable
-from .prepared_format import validate_manifest, validate_record, sha256, group_key
+from .prepared_format import validate_manifest, validate_catalog, validate_record, sha256, group_key
 from .schemas import (Snapshot, Provenance, Coverage, Summary, City, Distributions,
                       Facets, PropertyPage, Filters)
+
+# At most four concurrent prepared chunk workers per process, not per request.
+FETCH_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix='prepared-files')
 
 
 class PreparedDataProvider:
@@ -39,8 +43,20 @@ class PreparedDataProvider:
         self.cache = OrderedDict()
         self.cache_bytes = 0
         self.fetched_at = None
+        self.inflight = {}
+        self.download_gate = threading.BoundedSemaphore(4)
+        self.population_gate = threading.Lock()
+        self.population_cache = None  # One guarded city/category population, TTL 120s.
 
     def _download(self, path, expected, maximum, size=None):
+        if not self.download_gate.acquire(timeout=3):
+            raise UpstreamUnavailable('Prepared file fetch capacity is busy; retry shortly')
+        try:
+            return self._download_verified(path, expected, maximum, size)
+        finally:
+            self.download_gate.release()
+
+    def _download_verified(self, path, expected, maximum, size=None):
         url = f'https://huggingface.co/datasets/{self.repo}/resolve/{self.revision}/prepared/{path}'
         try:
             # Only the initial trusted HF host receives credentials. httpx strips
@@ -68,10 +84,7 @@ class PreparedDataProvider:
                 manifest = validate_manifest(json.loads(self._download('manifest.json',self.manifest_hash,8*1024*1024)))
                 self.manifest = manifest
                 catalog = self._file('catalog.json')
-                if (catalog['groups']['*|*']['count'] != manifest['total_prepared_rows']
-                        or len(catalog['cities']) != manifest['total_cities']
-                        or sum(manifest['files'][p]['rows'] for p in catalog['partitions']) != manifest['total_prepared_rows']):
-                    raise ValueError('Prepared catalog count mismatch')
+                validate_catalog(manifest, catalog)
                 self.catalog = catalog
                 self.fetched_at = datetime.now(timezone.utc).isoformat()
                 self.has_population = True
@@ -94,31 +107,56 @@ class PreparedDataProvider:
             if cached and time.monotonic()-cached[0] < 120:
                 self.cache.move_to_end(path)
                 return json.loads(cached[1])
-            info = self.manifest['files'].get(path)
-            if info is None:
-                raise UpstreamUnavailable('Requested file is absent from the trusted inventory')
-            raw = self._download(path,info['sha256'],min(info['bytes'],32*1024*1024),info['bytes'])
-            if path.endswith('.gz'):
-                with gzip.GzipFile(fileobj=io.BytesIO(raw)) as stream:
-                    raw = stream.read(8*1024*1024+1)
-                if len(raw)>8*1024*1024:
-                    raise UpstreamUnavailable('Prepared chunk exceeds decompressed size guard')
-            value = json.loads(raw)
-            if info['kind'] in ('view','partition'):
-                if len(value)!=info['rows'] or len(value)>2000:
-                    raise UpstreamUnavailable('Prepared chunk row count mismatch')
-                for row in value:
-                    validate_record(row)
-            if cached:
-                self.cache_bytes -= len(self.cache.pop(path)[1])
-            # Cache serialized bytes, not unbounded Python object graphs.
-            while self.cache and (self.cache_bytes+len(raw)>24*1024*1024 or len(self.cache)>=32):
-                _,old = self.cache.popitem(last=False)
-                self.cache_bytes -= len(old[1])
-            if len(raw)<=24*1024*1024:
-                self.cache[path]=(time.monotonic(),raw)
-                self.cache_bytes+=len(raw)
+            future = self.inflight.get(path)
+            owner = future is None
+            if owner:
+                future = Future()
+                self.inflight[path] = future
+        if not owner:
+            try:
+                return future.result(timeout=12)
+            except FutureTimeout as exc:
+                raise UpstreamUnavailable('Prepared shared file fetch timed out') from exc
+        try:
+            value, raw = self._load_file(path)
+            with self.lock:
+                old = self.cache.pop(path, None)
+                if old:
+                    self.cache_bytes -= len(old[1])
+                while self.cache and (self.cache_bytes+len(raw)>24*1024*1024 or len(self.cache)>=32):
+                    _,old = self.cache.popitem(last=False)
+                    self.cache_bytes -= len(old[1])
+                if len(raw)<=24*1024*1024:
+                    self.cache[path]=(time.monotonic(),raw)
+                    self.cache_bytes+=len(raw)
+                future.set_result(value)
             return value
+        except Exception as exc:
+            future.set_exception(exc)
+            raise
+        finally:
+            with self.lock:
+                self.inflight.pop(path, None)
+
+    def _load_file(self, path):
+        # Network and decoding must not hold the cache lock: independent chunks
+        # can load concurrently while duplicate requests share the same Future.
+        info = self.manifest['files'].get(path)
+        if info is None:
+            raise UpstreamUnavailable('Requested file is absent from the trusted inventory')
+        raw = self._download(path,info['sha256'],min(info['bytes'],32*1024*1024),info['bytes'])
+        if path.endswith('.gz'):
+            with gzip.GzipFile(fileobj=io.BytesIO(raw)) as stream:
+                raw = stream.read(8*1024*1024+1)
+            if len(raw)>8*1024*1024:
+                raise UpstreamUnavailable('Prepared chunk exceeds decompressed size guard')
+        value = json.loads(raw)
+        if info['kind'] in ('view','partition'):
+            if len(value)!=info['rows'] or len(value)>2000:
+                raise UpstreamUnavailable('Prepared chunk row count mismatch')
+            for row in value:
+                validate_record(row)
+        return value, raw
 
     @staticmethod
     def dynamic(filters):
@@ -161,17 +199,50 @@ class PreparedDataProvider:
                 or sum(self.manifest['files'][p]['bytes'] for p in paths)>32*1024*1024):
             raise UpstreamUnavailable('City query exceeds the safe request budget; select a property category or neighborhood')
         try:
+            key=tuple(paths)
+            cached=self.population_cache
+            if cached and cached[0]==key and time.monotonic()-cached[1]<120:
+                return cached[2]
+            deadline=time.monotonic()+25
+            if not self.population_gate.acquire(timeout=max(0,deadline-time.monotonic())):
+                raise UpstreamUnavailable('A prepared city query is in progress; retry shortly')
+            try:
+                cached=self.population_cache
+                if cached and cached[0]==key and time.monotonic()-cached[1]<120:
+                    return cached[2]
+                result=self._population(paths,deadline)
+                self.population_cache=(key,time.monotonic(),result)
+                return result
+            finally:
+                self.population_gate.release()
+        except (ValueError, KeyError, OSError, EOFError) as exc:
+            raise UpstreamUnavailable('Prepared partition failed validation') from exc
+
+    def _population(self, paths, deadline):
+        pending=deque()
+        remaining=iter(paths)
+        try:
             records = []
-            started = time.monotonic()
-            for path in paths:
-                if time.monotonic()-started > 25:
-                    raise UpstreamUnavailable('Prepared city query exceeded its time budget; narrow the category or neighborhood')
-                records.extend(validate_record(row) for row in self._file(path))
+            for _ in range(4):
+                path=next(remaining,None)
+                if path is not None:
+                    pending.append(FETCH_POOL.submit(self._file,path))
+            while pending:
+                rows=pending.popleft().result(timeout=max(0,deadline-time.monotonic()))
+                records.extend(validate_record(row) for row in rows)
+                if time.monotonic()>deadline:
+                    raise FutureTimeout()
+                path=next(remaining,None)
+                if path is not None:
+                    pending.append(FETCH_POOL.submit(self._file,path))
             result = object.__new__(Repository)
             result.snapshot = Snapshot(provenance=self.provenance(len(records),len(records),'prepared_city_partitions'),properties=records)
             return result
-        except (ValueError, KeyError, OSError, EOFError) as exc:
-            raise UpstreamUnavailable('Prepared partition failed validation') from exc
+        except FutureTimeout as exc:
+            raise UpstreamUnavailable('Prepared city query exceeded its time budget; narrow the category or neighborhood') from exc
+        finally:
+            for future in pending:
+                future.cancel()
 
     def summary(self, filters, model):
         if self.dynamic(filters):

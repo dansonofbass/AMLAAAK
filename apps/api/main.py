@@ -16,14 +16,14 @@ if __package__:
     from .service.analytics import Repository, city_aggregates, distributions
     from .service.inference import Inference
     from .service.huggingface import HuggingFaceDataProvider, UpstreamUnavailable
-    from .service.valuation import valuate
+    from .service.valuation import valuate, UnavailableComparableSource
     from .service.prepared import PreparedDataProvider
 else:  # Vercel imports main from apps/api as project root.
     from service import schemas as s
     from service.analytics import Repository, city_aggregates, distributions
     from service.inference import Inference
     from service.huggingface import HuggingFaceDataProvider, UpstreamUnavailable
-    from service.valuation import valuate
+    from service.valuation import valuate, UnavailableComparableSource
     from service.prepared import PreparedDataProvider
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -184,7 +184,11 @@ def create_app(snapshot_path=None, model_dir=None, data_provider=None):
                         provenance=provenance, coverage=provenance.coverage)
 
     @app.post('/api/v1/valuation', response_model=s.Valuation)
-    def valuation(body: s.PredictionInput, store=Depends(repository)):
+    def valuation(body: s.PredictionInput):
+        store=repo if repo is not None else UnavailableComparableSource(
+            'prepared' if mode=='prepared' else 'huggingface',
+            os.getenv('AMLAAAK_PREPARED_DATA_REPO','unconfigured'),
+            os.getenv('AMLAAAK_PREPARED_DATA_REVISION','unavailable') if mode=='prepared' else 'unavailable')
         return valuate(body, store, inference)
 
     @app.post('/api/v1/predict', response_model=s.Prediction)
