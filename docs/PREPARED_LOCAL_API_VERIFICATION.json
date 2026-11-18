@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-11-17T23:57:32.873232+00:00",
+  "base_url": "http://127.0.0.1:8000",
+  "provider": "prepared",
+  "revision": "8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a",
+  "prepared_sales": 420813,
+  "cities": 417,
+  "tehran_records": 88145,
+  "tehran_neighborhoods": 344,
+  "comparable_candidates": 84331,
+  "comparables": 8,
+  "model_version": "267eff7c36f3",
+  "predicted_price": 6076080000.0,
+  "pagination_filtering_sorting_statistics_details_passed": true,
+  "timings_seconds": {
+    "model/status": 0.078,
+    "dashboard/summary": 1.548,
+    "analytics/cities": 0.053,
+    "analytics/distributions": 0.01,
+    "data/facets": 0.008,
+    "properties": 1.758,
+    "properties/detail": 1.412,
+    "predict": 0.063,
+    "valuation": 13.597,
+    "health": 0.008
+  }
+}

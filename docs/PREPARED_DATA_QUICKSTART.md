@@ -1,9 +1,14 @@
 # Connect the complete prepared archive
 
-You do not need to write Python or download the original dataset to your laptop.
-The code is ready locally. **The full source has not been processed here, no dataset
-has been uploaded, and production has not been switched.** Your current model stays
-`267eff7c36f3`; this procedure expands the searchable archive, not its training data.
+The archive has now been prepared and uploaded by the user. Authenticated inventory,
+manifest/hash and local real API/browser verification passed for release
+`8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a` (420,813 sales, 417 cities).
+**Production has not been switched by the agent.** Model `267eff7c36f3` is unchanged.
+
+**You do not need to rerun Colab or upload again.** Start with
+[the exact verified-release Vercel instructions](PREPARED_RELEASE_DEPLOYMENT.md).
+The steps below remain for future rebuilding/preparation; current deployment can
+start at step 5, using the verified release values in step 6.
 
 ## 1. Open the notebook
 
@@ -75,8 +80,8 @@ first; choose the environment you intend to deploy. Add:
 | --- | --- |
 | `AMLAAAK_DATA_MODE` | `prepared` |
 | `AMLAAAK_PREPARED_DATA_REPO` | `thevel0per/AMLAAAK-Real-Estate-Data` |
-| `AMLAAAK_PREPARED_DATA_REVISION` | Your notebook's **DATASET_REVISION** |
-| `AMLAAAK_PREPARED_DATA_MANIFEST_SHA256` | Your notebook's **DATASET_MANIFEST_SHA256** |
+| `AMLAAAK_PREPARED_DATA_REVISION` | `8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a` |
+| `AMLAAAK_PREPARED_DATA_MANIFEST_SHA256` | `3f4dff6cd149c10c579371a8d33a151b64c72e11fa9aed00b132892198d72048` |
 | `HF_TOKEN` | A separate Hugging Face **read-only** token for this private dataset |
 
 Keep the approved `AMLAAAK_MODEL_REPO`, `AMLAAAK_MODEL_REVISION`, and

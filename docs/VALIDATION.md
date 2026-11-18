@@ -89,3 +89,55 @@ upload approval, actual private-repository read-back, verified dataset commit/ha
 backend read-token configuration, Preview function-size/memory/cold-start checks,
 and hosted prepared-mode/browser acceptance. Exact steps and rollback are in
 PREPARED_DATA_QUICKSTART.md. No push or deployment was performed.
+
+## Uploaded private release acceptance — 2026-11-18
+
+This supersedes the earlier pre-upload limitation: the user supplied the prepared
+release, and existing authenticated access allowed actual private verification.
+No full raw source/archive download, uploads, model changes, push, deployment or
+remote environment changes were performed by the agent.
+
+- Exact private commit `8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a` resolved; actual
+  manifest body SHA256 matched `3f4dff6cd149c10c579371a8d33a151b64c72e11fa9aed00b132892198d72048`.
+- All 5,201 indexed files were present with matching remote sizes. All 5,200 available
+  Hub LFS SHA256 values matched; the remaining catalog body plus four bounded sample
+  bodies passed direct hashing. Original source inventory/hash also matched its
+  pinned official repository. All archive/city/category/partition/sort-index totals
+  agree: 1,000,000 published processed source rows, 420,813 prepared sales, 417 cities.
+  This is published-manifest/index and LFS identity verification, not a new raw-source
+  processing run or independent body parsing of every archive row.
+- Real local backend HTTP checks passed for statistics, all cities, neighborhoods,
+  both property pages, sorting, numeric filtering, direct details, prediction and
+  comparable valuation. Tehran has 88,145 archive sales and 344 neighborhoods;
+  valuation searched 84,331 apartment candidates and returned 8 actual comparables.
+- The same complete HTTP acceptance passed through the actual built Next proxy.
+  A real Playwright private-release browser test passed without model/data mocks;
+  it confirmed archive counts, coordinated filters, pagination, valuation and absence
+  of browser-side Hugging Face requests. This is local integration, not hosted success.
+- Approved model version 267eff7c36f3 and test-input prediction 6076080000.0 remained
+  unchanged. Model artifact loader, integrity checks, ML package pins and experiment
+  files were not modified. The larger search archive was not used for retraining.
+- Python regression: 123 passed, 3 opt-in network tests skipped. Frontend unit tests:
+  12 passed; typecheck, lint and production build passed. Private-release live checks
+  are repeatable with the two scripts documented below, separately from pytest skips.
+- Permanent notebook Dataset Card fix: YAML `license: odbl`; manifest contract remains
+  `license: odbl-1.0`. Notebook cells are regenerated and checked against shared modules.
+
+The initial sequential real Tehran query hit its 25-second guard at 26.15 seconds.
+Four-way bounded fetching plus per-file single flight and one shared city-population
+cache fixed the observed failure: real cold population 20.048 seconds, warm population
+about 0.001 seconds; actual direct HTTP valuation 13.597 seconds and proxied valuation
+13.756 seconds. The final bounded top-eight ranking retains the same scores/order without
+materializing all comparable results. A fresh final Windows API process measured
+598,351,872 bytes peak working set after real API/proxy acceptance. These are local measurements, not Vercel SLAs.
+
+Evidence: PREPARED_RELEASE_VERIFICATION.json, PREPARED_LOCAL_API_VERIFICATION.json,
+PREPARED_LOCAL_PROXY_VERIFICATION.json. No listing rows, record identifiers or token
+values are included in those reports. Read-only hosted baseline checks still showed
+the old huggingface provider and working model, so 420,813 Production availability
+is **not** claimed. Follow PREPARED_RELEASE_DEPLOYMENT.md for Preview acceptance,
+backend-only read token, exact pins, deployment order and rollback.
+
+Existing offline browser regressions after the final changes: 12 passed; four opt-in
+network/synthetic prepared browser tests skipped by default. The real private-release
+browser test was executed separately and passed.

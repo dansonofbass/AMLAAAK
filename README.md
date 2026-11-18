@@ -2,6 +2,16 @@
 
 AMLAAAK is an Iranian real-estate research platform with direct Hugging Face historical-data retrieval, explainable comparable-property discovery, and separately trained Random Forest valuation. The Next.js workspace calls a typed FastAPI backend through a server-only proxy. It uses no managed database, PostgreSQL, MongoDB, paid map API, or generative-AI service. Nothing was pushed or deployed during this implementation.
 
+## Verified prepared release ? deployment pending
+
+The user's private uploaded archive at `8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a`
+passed authenticated manifest/inventory checks and actual local API/Next browser
+acceptance: 420,813 prepared historical sales across 417 cities. The approved model
+remains `267eff7c36f3`. **These counts are not claimed available in Production yet.**
+Follow [the exact Vercel release instructions](docs/PREPARED_RELEASE_DEPLOYMENT.md).
+No full archive/raw source was downloaded locally, no model was retrained, and no
+remote settings, uploads, push or deployment were performed by the agent.
+
 ## Status and scope
 
 This is a portfolio research prototype, not a production valuation system. The included **10 illustrative records are not verified Divar observations**. Eight are sales and two are rentals; training excludes the rentals. The bundled snapshot remains an explicit offline test mode. Live runtime prefers genuine Hugging Face records with strict retrieval limits. A bounded real-data experiment completed, described below; it is not a full-market validation. Inference remains unavailable unless a trusted artifact is explicitly configured.
@@ -241,7 +251,8 @@ verification. The optional prepared FastAPI provider uses indexed chunks through
 existing Next proxy; the dashboard design and approved model remain unchanged.
 
 Start with [the simple Colab → Vercel guide](docs/PREPARED_DATA_QUICKSTART.md).
-Full processing/upload/hosted prepared mode have **not** been executed by the agent.
+The user completed the upload. The agent verified the pinned private release and local
+prepared API/browser integration; hosted prepared mode has **not** been activated by the agent.
 The current default provider remains the bounded Hugging Face prefix provider until
 you finish that workflow and explicitly change the backend mode. More searchable
 historical listings are not additional model training data. See [format and query

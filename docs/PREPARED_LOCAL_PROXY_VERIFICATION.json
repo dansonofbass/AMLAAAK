@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-11-17T23:57:51.218310+00:00",
+  "base_url": "http://127.0.0.1:3100",
+  "provider": "prepared",
+  "revision": "8cc2a942d6d5d4b7cfa22e09a39d0223ff24019a",
+  "prepared_sales": 420813,
+  "cities": 417,
+  "tehran_records": 88145,
+  "tehran_neighborhoods": 344,
+  "comparable_candidates": 84331,
+  "comparables": 8,
+  "model_version": "267eff7c36f3",
+  "predicted_price": 6076080000,
+  "pagination_filtering_sorting_statistics_details_passed": true,
+  "timings_seconds": {
+    "model/status": 0.054,
+    "dashboard/summary": 0.031,
+    "analytics/cities": 0.065,
+    "analytics/distributions": 0.023,
+    "data/facets": 0.035,
+    "properties": 1.797,
+    "properties/detail": 0.828,
+    "predict": 0.063,
+    "valuation": 13.756,
+    "health": 0.03
+  },
+  "runtime_observation": {
+    "platform": "Windows local QA process after final real API/proxy checks; bounded top-eight ranking",
+    "working_set_bytes": 594333696,
+    "peak_working_set_bytes": 598351872,
+    "private_memory_bytes": 591687680,
+    "hosted_measurement": false
+  }
+}

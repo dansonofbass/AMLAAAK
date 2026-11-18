@@ -2,11 +2,13 @@
 
 No push, hosting deployment, database provisioning, or remote deployment-setting changes were performed. The application remains two independent projects: apps/web and apps/api.
 
-For the new full-source preparation workflow, start with
-[the beginner Colab/Vercel guide](PREPARED_DATA_QUICKSTART.md). The actual notebook is
-`notebooks/prepare_divar_dataset.ipynb`. Prepared mode is opt-in only after a successful
-Colab run, approved private upload, and verified dataset commit/manifest hash. It does
-not replace or retrain the approved model. Detailed budgets are in [PREPARED_DATA.md](PREPARED_DATA.md).
+The uploaded private release has now passed authenticated manifest/inventory checks
+and actual local API/Next browser acceptance. Follow
+[the exact prepared-release deployment guide](PREPARED_RELEASE_DEPLOYMENT.md) for the
+known revision/hash, backend read token, Preview-first order, hosted smoke commands
+and rollback. **No production activation is claimed.** The approved model is unchanged.
+The Colab notebook remains available for future preparation, not a prerequisite to
+reuse the already verified upload.
 
 ## Local Windows PowerShell setup
 
@@ -198,7 +200,7 @@ $env:AMLAAAK_RUN_LIVE_TESTS='1'
 .\.venv\Scripts\python -m pytest -q -m live
 ```
 
-From apps/web, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`. With an illustrative-mode API and both servers running, run `npm.cmd run test:e2e` (12 deterministic browser tests; two live tests and one synthetic prepared-provider test skipped). Playwright uses installed Microsoft Edge headless. Install an official Playwright browser/update its channel if Edge is absent.
+From apps/web, run `npm.cmd run test`, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`. With an illustrative-mode API and both servers running, run `npm.cmd run test:e2e` (12 deterministic browser tests; two original live tests, one synthetic prepared-provider test and one real prepared-release test skipped). Playwright uses installed Microsoft Edge headless. Install an official Playwright browser/update its channel if Edge is absent.
 
 For a live-mode API with the real trained model:
 

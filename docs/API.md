@@ -60,3 +60,20 @@ this request, not an empty archive. Health reports prepared mode and lazy readin
 Private-data failures never switch to the old prefix/illustrative providers. The
 valuation endpoint preserves approved model inference and labels unavailable
 comparables separately. See [PREPARED_DATA.md](PREPARED_DATA.md).
+
+### Prepared-release reliability
+
+Prepared catalog loading now validates every global/city/category partition and
+sorted-page index total before marking the data ready. Missing indexes return 503
+rather than misleading empty pages. Private files use a process-wide four-worker
+fetch pool, four download slots, per-file single flight and a bounded serialized
+cache. One guarded city/category population is reused for 120 seconds; waiting,
+loading and validation share the 25-second construction budget.
+
+`POST /valuation` no longer depends on successful dataset initialization before
+running inference. If private configuration/access fails, an available approved
+model can still return its estimate with no comparables, zero/non-exhaustive search
+coverage and an explicit data-unavailable limitation. Analytics still return 503;
+there is no sample/prefix fallback. Model-unavailable valuation can independently
+return actual prepared comparables. See the verified-release deployment guide for
+exact supported query limits and hosted acceptance.

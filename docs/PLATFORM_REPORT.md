@@ -37,6 +37,7 @@ New work is organized into descriptive local Conventional Commits; inspect git l
 ## Subsequent approved remote-model preparation
 
 The operator subsequently provided the approved public model repository, revision and manifest hash. Actual remote download, integrity checks, inference, valuation and frontend proxy integration now pass. Vercel runtime manifests include exact ML versions and pinned public artifact settings. This supersedes the earlier remote-provisioning limitation above; hosted deployment remains unverified. See DEPLOYMENT.md and the final section of VALIDATION.md for exact settings, measured local evidence and acceptance steps.
+
 ## Subsequent complete-source preparation integration
 
 The actual self-contained `notebooks/prepare_divar_dataset.ipynb`, preparation/upload
@@ -55,3 +56,30 @@ Hugging Face provider and approved trained model.
 Start with [the beginner guide](PREPARED_DATA_QUICKSTART.md). The provider's query,
 memory and filtering limits, source/license evidence, generated format and test scope
 are in [PREPARED_DATA.md](PREPARED_DATA.md). The old provider remains the rollback path.
+
+## Uploaded private release integration
+
+The user's uploaded private release was authenticated and verified at the supplied
+commit/hash. All 5,201 indexed files matched remote sizes; 5,200 Hub LFS hashes,
+the remaining catalog body and four bounded sample bodies matched. Official source
+inventory/hash and archive index totals agreed. Full source/archive bodies were not
+downloaded locally. Precise scope is in PREPARED_RELEASE_VERIFICATION.json.
+
+Real local FastAPI, Next proxy and browser acceptance served the prepared archive
+(420,813 historical sales / 417 cities), genuine comparables and unchanged model
+267eff7c36f3. An observed cold Tehran timeout was fixed through bounded four-way
+fetching, single flight and one city cache. Strict catalog index validation prevents
+missing indexes from becoming successful empty pages. Valuation preserves inference
+even if dataset configuration cannot initialize. Notebook Dataset Card metadata now
+uses odbl while the manifest stays odbl-1.0.
+
+Backend tests: 123 passed; frontend tests: 12 passed; typecheck/lint/build and a real
+private-data browser test passed. The existing model, artifacts and experiment are
+unchanged. Exact Vercel settings, honest local memory/timing evidence, smoke tests,
+read-token handling, remaining hosted risks and rollback are in
+[PREPARED_RELEASE_DEPLOYMENT.md](PREPARED_RELEASE_DEPLOYMENT.md).
+
+Only local commits are prepared. Nothing was uploaded, pushed or deployed by the
+agent. Production still needs explicit backend prepared-mode/read-token configuration
+and successful hosted acceptance. The application is a Preview rollout candidate,
+not an already certified Production valuation service.

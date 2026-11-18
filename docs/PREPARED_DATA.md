@@ -12,15 +12,18 @@ The pinned original source is `divarofficial/real_estate_ads` at
 `e9446ee97b8e6eb9bd62bdfd7548f1bc8973be85`. Actual Hub metadata/tree checks found **one
 source CSV**, `real_estate_ads.csv`, 780,721,338 bytes, LFS SHA-256
 `e5760fe1325a195e6682c371457bfecd51d255c518756e3cbea234b8163a801f`.
-The source card uses license identifier `odbl`; the prepared card/manifest normalize
-this to ODbL 1.0 and retain Divar attribution. The Dataset Server's converted Parquet
+The source and prepared Dataset Card YAML use the Hub identifier `odbl`; the versioned
+manifest retains `odbl-1.0`. Both describe ODbL 1.0 and retain Divar attribution. The Dataset Server's converted Parquet
 branch is not substituted for the immutable original source commit.
 
-**Full source processing has not been executed locally or in Colab by the agent.**
-Pipeline/provider tests use synthetic records. Real private-repository access and
-hosted prepared-mode operation require the user's successful notebook run, approved
-upload, read token, environment configuration and deployment. No prepared dataset
-revision or manifest hash is invented.
+The user completed Colab preparation and uploaded the private archive. Authenticated
+verification of the exact supplied revision/hash passed, including all 5,201 inventory
+sizes, 5,200 Hub LFS hashes, the direct catalog hash and bounded body samples. Published
+source-processing counts and every global/city/category index total agree. The agent
+has not downloaded/reprocessed the full raw source or all archive bodies locally.
+Actual local FastAPI and Next proxy/browser checks served 420,813 sales and 417 cities
+with genuine comparables and the unchanged model. **Hosted prepared Production is
+not activated by the agent.** See [release deployment and precise verification scope](PREPARED_RELEASE_DEPLOYMENT.md).
 
 ## Data flow
 
@@ -150,10 +153,13 @@ false full-coverage claim. This archive adapter is not an unrestricted database 
 engine; very large cities/concurrency may eventually require a dedicated query service.
 
 Files are capped at 32 MiB, manifest at 8 MiB, decompressed chunks at 8 MiB / 2,000 rows.
-Verified serialized cache is bounded to **24 MiB / 32 entries**, TTL 120 seconds, per
-worker. The catalog and in-flight parsed objects add memory beyond cache bytes.
-Private immutable source outages return visible 503 errors; model inference can still
-respond with zero comparable coverage. Health reports lazy readiness/check state.
+Verified serialized file cache is bounded to **24 MiB / 32 entries**, TTL 120 seconds, per
+worker. Four file fetches can run concurrently, duplicate fetches share a Future, and
+one guarded city/category population is cached for 120 seconds. Matching heavy
+queries share that population; waiting/loading/validation use the same 25-second budget. The catalog, parsed city population and in-flight objects add memory beyond file-cache bytes.
+Private immutable source outages return visible 503 errors on analytics; valuation model
+inference can still respond with zero comparable coverage even if dataset configuration
+could not initialize. Health reports lazy readiness/check state.
 Checksums, decompression, schema errors, failed authentication and budget failures do
 not silently produce successful empty data. A genuinely absent city can return a
 truthful empty result.

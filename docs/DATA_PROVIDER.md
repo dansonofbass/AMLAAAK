@@ -52,7 +52,8 @@ The working runtime currently cannot query an arbitrary whole-city population be
 
 The default prefix provider described below is preserved for rollback. After a full
 Colab preparation and approved upload, `AMLAAAK_DATA_MODE=prepared` selects the private,
-manifest-pinned indexed archive. It bypasses Dataset Server `/rows` entirely. No actual
-full-source run, private upload or hosted prepared deployment has been performed by
-the agent. Follow [the beginner guide](PREPARED_DATA_QUICKSTART.md) and
+manifest-pinned indexed archive. It bypasses Dataset Server `/rows` entirely. The user completed the upload; authenticated inventory and local real prepared
+API/browser checks now pass. No full source/archive download or hosted prepared
+Production deployment has been performed by the agent. See
+[the verified release rollout](PREPARED_RELEASE_DEPLOYMENT.md). Follow [the beginner guide](PREPARED_DATA_QUICKSTART.md) and
 [technical format/query limits](PREPARED_DATA.md). The approved model stays unchanged.
