@@ -1,5 +1,15 @@
 # Local operation and deployment
 
+## Simplified dashboard feature branch
+
+See [UI_REDESIGN.md](UI_REDESIGN.md) for the new protected Preview review sequence.
+Deploy its additive nullable-input backend change to a new Preview before connecting
+the redesigned frontend Preview. Preserve all existing model/data pins, backend HF_TOKEN,
+API_TOKEN, deployment protection and Trusted Sources/OIDC configuration. The proxy route
+is unchanged from verified Preview commit f13e9e5. No real environment settings, push or
+hosting deployment are performed by this redesign. Local relay tests cover OIDC header
+forwarding; the new branch still needs hosted Preview acceptance with genuine platform OIDC.
+
 No push, hosting deployment, database provisioning, or remote deployment-setting changes were performed. The application remains two independent projects: apps/web and apps/api.
 
 The uploaded private release has now passed authenticated manifest/inventory checks

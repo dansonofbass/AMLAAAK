@@ -141,3 +141,38 @@ backend-only read token, exact pins, deployment order and rollback.
 Existing offline browser regressions after the final changes: 12 passed; four opt-in
 network/synthetic prepared browser tests skipped by default. The real private-release
 browser test was executed separately and passed.
+
+## Simplified dashboard acceptance - 2026-11-18
+
+Feature branch: feature/simplified-dashboard-redesign; base: f13e9e5 from
+origin/prepared-release-preview. No push, deployment or real environment change.
+
+- Backend: 124 passed, 3 opt-in tests skipped. Windows denied the shared pytest
+  temporary root on the first rerun; a fresh ignored workspace --basetemp directory
+  resolved it. One pytest cache warning remained; there were no test failures.
+- Frontend: 17 unit tests passed, including Persian/Arabic numeral parsing and
+  server-only bearer/OIDC forwarding. TypeScript, ESLint and production build passed.
+- Final offline browser suite: 12 passed, 4 opt-in integration tests skipped.
+  Covers full-page navigation, map keyboard selection, filtering/pagination,
+  essential-only valuation, explicit false versus unknown, Persian RTL persistence,
+  mobile focus, loading and failures without fabricated KPIs.
+- Authenticated real prepared browser suite: 1 passed separately against the new
+  local frontend and actual private dataset/approved model. No browser HF requests.
+- Complete real smoke checks passed both directly on FastAPI and through Next:
+  420,813 records, 417 cities, Tehran 88,145 records / 344 neighborhoods, pagination,
+  filtering, sorting, statistics and record details. Returned 8 real comparables
+  from 84,331 eligible candidates. Model version remained 267eff7c36f3; fully
+  specified reference prediction remained 6,076,080,000 original source units.
+  Essential-only prediction with unknown optional attributes also passed.
+- Local valuation timings in these runs: 10.699 seconds direct and 12.438 seconds
+  proxied. These are local observations, not hosted latency or memory guarantees.
+- Screenshots were captured and visually inspected on desktop and Persian mobile
+  using labeled illustrative QA data. No private listing screenshots are committed.
+- The protected proxy is byte-unchanged from f13e9e5. Dataset/model pins, approved
+  artifacts, dependency locks and legal notices are unchanged. No full archive was
+  downloaded; existing indexed/bounded fetching was exercised with local secure auth.
+
+Remaining acceptance: deploy this branch to a new protected backend Preview first,
+then connect a frontend Preview and repeat acceptance with genuine Vercel OIDC.
+No new hosted OIDC, cold-start, memory or request-duration claim is made. Production
+was not changed. Follow UI_REDESIGN.md for exact review and Preview steps.
