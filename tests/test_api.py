@@ -110,6 +110,23 @@ def test_real_prediction_and_metrics(bundle, monkeypatch):
     assert metrics['residuals_available'] is False
 
 
+def test_optional_unknown_details_use_fitted_imputation_and_keep_false_distinct(bundle, monkeypatch):
+    from apps.api.service.schemas import PredictionInput
+    monkeypatch.delenv('AMLAAAK_API_TOKEN',raising=False)
+    client=TestClient(create_app(SNAPSHOT,str(bundle)))
+    essential={k:BODY[k] for k in ('city_slug','cat3_slug','building_size','rooms_count')}
+    parsed=PredictionInput(**essential)
+    assert parsed.has_parking is None and parsed.floor is None
+    assert PredictionInput(**essential,has_parking=False).has_parking is False
+    response=client.post('/api/v1/predict',json=essential)
+    assert response.status_code==200 and response.json()['predicted_price']>0
+    assert any('fitted training-data imputation' in w for w in response.json()['warnings'])
+    valuation=client.post('/api/v1/valuation',json=essential)
+    assert valuation.status_code==200 and valuation.json()['comparables']
+    assert all('Parking matches' not in c['reasons'] for c in valuation.json()['comparables'])
+    assert client.post('/api/v1/predict',json={**essential,'floor':8,'total_floors_count':4}).status_code==422
+
+
 def test_bad_bundle_fails_closed(bundle, tmp_path, monkeypatch):
     import shutil
     monkeypatch.delenv('AMLAAAK_API_TOKEN', raising=False)

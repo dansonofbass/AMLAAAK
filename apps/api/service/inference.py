@@ -65,11 +65,17 @@ class Inference:
     def predict(self, request):
         import pandas as pd
         frame = pd.DataFrame([request.model_dump()])[self.metadata['features']]
+        # Unknown optional details remain missing, using the already-fitted
+        # numeric imputer. They are never silently converted to false/zero.
+        numeric=[name for name in self.metadata['features'] if name not in ('city_slug','cat3_slug')]
+        frame[numeric]=frame[numeric].apply(pd.to_numeric,errors='coerce')
         estimate = float(self.model.predict(frame)[0])
         if not math.isfinite(estimate) or estimate <= 0:
             raise ValueError('Model returned an invalid estimate')
         warnings = ['Asking price estimate, not a completed-sale valuation.',
                     'No calibrated confidence interval is available.', 'Currency units have not been independently verified.']
+        if frame[numeric].isna().any(axis=None):
+            warnings.append('Unknown property details use the model’s fitted training-data imputation, not known property attributes.')
         if (self.metadata.get('source_provenance') or {}).get('coverage', {}).get('bounded'):
             warnings.append('Model trained on a bounded historical source prefix, not representative of the entire market.')
         try:

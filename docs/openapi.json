@@ -2241,37 +2241,86 @@
             "title": "Rooms Count"
           },
           "floor": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": -5.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": -5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Floor"
           },
           "total_floors_count": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Total Floors Count"
           },
           "construction_year": {
-            "type": "integer",
-            "maximum": 1500.0,
-            "minimum": 1200.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1500.0,
+                "minimum": 1200.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Construction Year"
           },
           "has_parking": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Has Parking"
           },
           "has_elevator": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Has Elevator"
           },
           "has_balcony": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Has Balcony"
           },
           "has_warehouse": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Has Warehouse"
           }
         },
@@ -2281,14 +2330,7 @@
           "city_slug",
           "cat3_slug",
           "building_size",
-          "rooms_count",
-          "floor",
-          "total_floors_count",
-          "construction_year",
-          "has_parking",
-          "has_elevator",
-          "has_balcony",
-          "has_warehouse"
+          "rooms_count"
         ],
         "title": "PredictionInput"
       },

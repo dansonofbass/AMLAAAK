@@ -198,17 +198,17 @@ class PredictionInput(Contract):
     cat3_slug: Literal['apartment-sell', 'house-villa-sell']
     building_size: float = Field(gt=0, le=10000)
     rooms_count: int = Field(ge=0, le=20)
-    floor: int = Field(ge=-5, le=100)
-    total_floors_count: int = Field(ge=1, le=100)
-    construction_year: int = Field(ge=1200, le=1500)
-    has_parking: bool
-    has_elevator: bool
-    has_balcony: bool
-    has_warehouse: bool
+    floor: int | None = Field(default=None, ge=-5, le=100)
+    total_floors_count: int | None = Field(default=None, ge=1, le=100)
+    construction_year: int | None = Field(default=None, ge=1200, le=1500)
+    has_parking: bool | None = None
+    has_elevator: bool | None = None
+    has_balcony: bool | None = None
+    has_warehouse: bool | None = None
 
     @model_validator(mode='after')
     def floor_in_building(self):
-        if self.floor > self.total_floors_count:
+        if self.floor is not None and self.total_floors_count is not None and self.floor > self.total_floors_count:
             raise ValueError('Floor cannot exceed total floors')
         return self
 

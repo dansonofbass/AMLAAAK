@@ -33,15 +33,19 @@ def rank_comparables(subject, candidates, limit=8):
             reasons.append(f'Area differs by {abs(row.building_size-subject.building_size):g} m²')
             add(15, 1/(1+abs(row.rooms_count-subject.rooms_count)) if row.rooms_count is not None else 0)
             reasons.append(f'{row.rooms_count:g} bedrooms' if row.rooms_count is not None else 'Bedrooms unknown')
-            add(10, max(0, 1-abs(row.construction_year-subject.construction_year)/40) if row.construction_year else 0)
-            if row.construction_year:
+            if subject.construction_year is not None:
+                add(10, max(0, 1-abs(row.construction_year-subject.construction_year)/40) if row.construction_year else 0)
+            if row.construction_year and subject.construction_year is not None:
                 reasons.append(f'Construction year differs by {abs(row.construction_year-subject.construction_year):g}')
-            add(5, max(0, 1-abs(row.floor-subject.floor)/10) if row.floor is not None else 0)
+            if subject.floor is not None:
+                add(5, max(0, 1-abs(row.floor-subject.floor)/10) if row.floor is not None else 0)
             if subject.neighborhood_slug:
                 match = row.neighborhood_slug == subject.neighborhood_slug
                 add(20, float(match))
                 reasons.append('Same neighborhood' if match else 'Different or unknown neighborhood')
             for feature in ('has_parking','has_elevator','has_balcony','has_warehouse'):
+                if getattr(subject,feature) is None:
+                    continue
                 value = getattr(row, feature)
                 matches = value is not None and value == getattr(subject, feature)
                 add(5, float(matches))

@@ -37,7 +37,9 @@ Prediction/valuation input example (user specifications, not an invented observe
 }
 ```
 
-Neighborhood is optional and influences comparables, not the current estimator. Area must be >0 and <=10,000; rooms/bedrooms 0-20; floor -5 to 100; total floors 1-100; floor <= total floors; construction year 1200-1500 Solar Hijri. Additional JSON fields/nonfinite values are rejected. These are guardrails, not proof of model training-domain coverage.
+Only city, property type, area and rooms/bedrooms are required. Neighborhood is optional and influences comparables, not the current estimator. Floor, total floors, construction year and the four amenities may be omitted or null (unknown). The existing fitted model pipeline imputes missing numeric features; no model is retrained. Unknown amenities remain distinct from explicit false. Comparable ranking skips unknown subject features.
+
+Area must be >0 and <=10,000; rooms/bedrooms 0-20; known floor -5 to 100; known total floors 1-100; floor <= total floors when both are known; known construction year 1200-1500 Solar Hijri. Additional JSON fields/nonfinite values are rejected. These are guardrails, not proof of model training-domain coverage. The frontend's optional asking price is a client-side comparison and is not sent as a model feature.
 
 Valuation response has model, prediction (nullable), provenance, coverage, comparables [{property, similarity_score, reasons}], comparable_median_price, comparable_median_price_per_sqm, prediction_vs_comparable_percent (nullable), limitations and label. Missing models never produce formula-based substitutes. Upstream outages can return a valid model estimate with zero examined comparable records and an explicit failed-search limitation. No model estimate is substituted for the comparable median.
 
