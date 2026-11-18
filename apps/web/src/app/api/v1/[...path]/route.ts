@@ -62,6 +62,11 @@ async function proxy(
     };
     if (process.env.API_TOKEN)
       headers.Authorization = `Bearer ${process.env.API_TOKEN}`;
+    // Pass Vercel-issued short-lived identity only server-to-server.
+    // The backend Preview explicitly trusts this frontend Preview via Trusted Sources.
+    const vercelOidcToken = request.headers.get("x-vercel-oidc-token");
+    if (vercelOidcToken && new URL(origin).hostname.endsWith(".vercel.app"))
+      headers["x-vercel-trusted-oidc-idp-token"] = vercelOidcToken;
     const response = await fetch(
       `${origin.replace(/\/$/, "")}/api/v1/${route}${request.nextUrl.search}`,
       {
