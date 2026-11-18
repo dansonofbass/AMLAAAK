@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { FlaskConical, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
-import { metricsSchema } from "@/lib/contracts";
+import { metricsSchema, summarySchema } from "@/lib/contracts";
 import { useLanguage } from "./language";
 import { LoadingState, ErrorState } from "./status";
 export function ModelPerformance() {
@@ -10,6 +10,10 @@ export function ModelPerformance() {
   const query = useQuery({
     queryKey: ["model-metrics"],
     queryFn: () => api("model/metrics", metricsSchema),
+  });
+  const archive = useQuery({
+    queryKey: ["model-methodology-archive-summary"],
+    queryFn: () => api("dashboard/summary", summarySchema),
   });
   if (query.isError)
     return (
@@ -78,37 +82,37 @@ export function ModelPerformance() {
           <div className="kpi-grid">
             {[
               {
-                label: t("Training records", "آگهی‌های آموزش"),
-                value: m.train_rows,
-              },
-              {
-                label: t("Validation records", "آگهی‌های اعتبارسنجی"),
-                value: m.validation_rows,
-              },
-              {
-                label: t("Test records", "آگهی‌های آزمون"),
-                value: m.test_rows,
-              },
-              {
-                label: t(
-                  "Eligible training-source sales",
-                  "فروش‌های معتبر منبع آموزش",
+                label: t("Historical data records", "تعداد رکوردهای تاریخی"),
+                value: archive.data?.count,
+                detail: t(
+                  "Full searchable dataset, not model training records",
+                  "کل داده‌های قابل جستجو، نه تعداد نمونه‌های آموزش مدل",
                 ),
-                value: m.eligible_rows,
+              },
+              {
+                label: t("Cities in archive", "شهرهای آرشیو"),
+                value: archive.data?.cities_count,
+                detail: t(
+                  "Cities represented in the historical dataset",
+                  "شهرهای موجود در داده‌های تاریخی",
+                ),
               },
             ].map((c) => (
               <section className="kpi-card" key={c.label}>
                 <span className="kpi-label">{c.label}</span>
-                <strong>{n(c.value)}</strong>
-                <small className="small-note">
-                  {t(
-                    "Model source subset, not the searchable archive",
-                    "نمونه منبع مدل، نه آرشیو قابل جستجو",
-                  )}
-                </small>
+                <strong>{c.value == null ? "—" : n(c.value)}</strong>
+                <small className="small-note">{c.detail}</small>
               </section>
             ))}
           </div>
+          {archive.isError && (
+            <p className="small-note" role="status">
+              {t(
+                "Historical archive statistics are temporarily unavailable.",
+                "آمار آرشیو تاریخی فعلاً در دسترس نیست.",
+              )}
+            </p>
+          )}
           <section className="table-panel metrics-table">
             <div className="table-toolbar">
               <h2>
@@ -194,6 +198,20 @@ export function ModelPerformance() {
             {m.source_revision || "—"}
           </code>
         </section>
+        <details className="panel panel-body">
+          <summary>{t("Original model training sample", "نمونه آموزشی مدل فعلی")}</summary>
+          <p className="small-note">
+            {t(
+              "This separate model was trained on a limited historical subset, not on every record in the searchable archive.",
+              "مدل فعلی روی نمونه تاریخی محدودی آموزش دیده، نه تمام رکوردهای آرشیو قابل جستجو.",
+            )}
+          </p>
+          <p className="small-note">
+            {t("Training", "آموزش")}: {n(m.train_rows)} ·{" "}
+            {t("Validation", "اعتبارسنجی")}: {n(m.validation_rows)} ·{" "}
+            {t("Test", "آزمون")}: {n(m.test_rows)}
+          </p>
+        </details>
         <details className="panel panel-body">
           <summary>
             {t("Feature and runtime metadata", "ویژگی‌ها و فراداده اجرا")}
