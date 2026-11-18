@@ -78,3 +78,46 @@ def validate_manifest(manifest):
     ):
         raise ValueError('Unverified source completeness claim')
     return manifest
+
+
+def validate_catalog(manifest, catalog):
+    """Reject missing indexes and contradictory totals instead of returning empty pages."""
+    files=manifest['files']
+    cities=catalog['cities']
+    groups=catalog['groups']
+    categories=('apartment-sell','house-villa-sell')
+    if (len(cities)!=manifest['total_cities'] or len(cities)!=len(set(cities))
+            or any(not valid_slug(city,80) for city in cities)
+            or groups['*|*']['count']!=manifest['total_prepared_rows']
+            or sum(groups[group_key(city)]['count'] for city in cities)!=manifest['total_prepared_rows']):
+        raise ValueError('Prepared catalog geographic totals mismatch')
+    expected={p for p,info in files.items() if info['kind']=='partition'}
+    if len(catalog['partitions'])!=len(set(catalog['partitions'])) or set(catalog['partitions'])!=expected:
+        raise ValueError('Prepared partition index is incomplete')
+    counts={}
+    for path in expected:
+        info=files[path]
+        key=group_key(info['city'],info['category'])
+        counts[key]=counts.get(key,0)+info['rows']
+    if sum(counts.values())!=manifest['total_prepared_rows']:
+        raise ValueError('Prepared partition count mismatch')
+    for city in [None]+cities:
+        total=groups[group_key(city)]['count']
+        if sum(groups[group_key(city,category)]['count'] for category in categories)!=total:
+            raise ValueError('Prepared category statistics mismatch')
+        if city and any(counts.get(group_key(city,category),0)!=groups[group_key(city,category)]['count'] for category in categories):
+            raise ValueError('Prepared city/category partition totals mismatch')
+        views=catalog['city_views'][city] if city else catalog['views']
+        for sort in SORTS:
+            paths=views[sort]
+            if len(paths)!=len(set(paths)) or sum(files[p]['rows'] for p in paths)!=total:
+                raise ValueError('Prepared sorted index is incomplete')
+            for path in paths:
+                info=files[path]
+                if (info['kind']!='view' or info['sort']!=sort or info.get('city')!=city
+                        or sum(info['category_counts'].values())!=info['rows']):
+                    raise ValueError('Prepared sorted index schema mismatch')
+            for category in categories:
+                if sum(files[p]['category_counts'].get(category,0) for p in paths)!=groups[group_key(city,category)]['count']:
+                    raise ValueError('Prepared sorted category index mismatch')
+    return catalog

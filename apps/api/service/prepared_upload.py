@@ -10,7 +10,7 @@ BATCH_FILES = 200
 BATCH_BYTES = 32 * 1024 * 1024
 
 DATASET_CARD = '''---
-license: odbl-1.0
+license: odbl
 language:
 - fa
 task_categories:
