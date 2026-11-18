@@ -136,6 +136,14 @@ def test_city_neighborhood_numeric_filters_comparables_and_lookup(archive):
     assert value['comparables'][0]['property']['neighborhood_slug']=='central'
     assert all(c['property']['city_slug']=='tehran' and c['property']['cat3_slug']=='apartment-sell' for c in value['comparables'])
     assert value['provenance']['provider']=='prepared' and value['coverage']['exhaustive']
+    # A crowded candidate set must retain the closest eight regardless of order.
+    from apps.api.service.schemas import Property, PredictionInput
+    from apps.api.service.valuation import rank_comparables
+    base=Property.model_validate(value['comparables'][0]['property'])
+    crowded=[base.model_copy(update={'id':f'{i:016x}','building_size':80+i,
+        'price_per_sqm':base.price_value/(80+i)}) for i in reversed(range(50))]
+    ranked=rank_comparables(PredictionInput(**body),crowded)
+    assert [r.property.id for r in ranked]==[f'{i:016x}' for i in range(8)]
     assert client.get('/api/v1/health').json()['provider']=='prepared'
     unknown=client.get('/api/v1/dashboard/summary?city=unknown-city').json()
     assert unknown['count']==0 and unknown['median_price'] is None
@@ -303,3 +311,94 @@ def test_private_token_is_not_forwarded_to_cdn():
         token='private-test-token',client=httpx.Client(transport=httpx.MockTransport(handler)))
     assert provider._download('manifest.json',sha256(b'verified'),100)==b'verified'
     assert len(calls)==2
+
+
+def test_dataset_card_identifier_does_not_change_manifest_license(archive):
+    from apps.api.service.prepared_upload import DATASET_CARD
+    import yaml
+    metadata=yaml.safe_load(DATASET_CARD.split('---')[1])
+    assert metadata['license']=='odbl'
+    assert 'Open Database License 1.0' in DATASET_CARD
+    assert archive[1]['license']=='odbl-1.0'
+
+
+@pytest.mark.parametrize('damage',['city_total','missing_partition','missing_city_view'])
+def test_contradictory_or_missing_indexes_are_rejected(archive,damage):
+    from apps.api.service.prepared_format import validate_catalog
+    catalog=json.loads((archive[0]/'catalog.json').read_bytes())
+    if damage=='city_total':
+        catalog['groups']['tehran|*']['count']+=1
+    elif damage=='missing_partition':
+        catalog['partitions'].pop()
+    else:
+        catalog['city_views']['tehran']['price_value'].pop()
+    with pytest.raises((ValueError,KeyError)):
+        validate_catalog(archive[1],catalog)
+
+
+def test_parallel_fetch_is_bounded_and_population_reused(archive,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    import threading
+    provider,calls=provider_for(archive[0])
+    provider._ensure()
+    active=peak=0
+    guard=threading.Lock()
+    original=provider._download_verified
+    def observed(*args,**kwargs):
+        nonlocal active,peak
+        with guard:
+            active+=1;peak=max(peak,active)
+        try:
+            time.sleep(.015)
+            return original(*args,**kwargs)
+        finally:
+            with guard:active-=1
+    monkeypatch.setattr(provider,'_download_verified',observed)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        values=list(executor.map(lambda _:provider.population(Filters(city='tehran')),range(3)))
+    assert 1<peak<=4 and all(p is values[0] for p in values)
+    assert len(values[0].rows)==9
+    assert not provider.inflight
+
+
+def test_missing_dataset_config_preserves_valuation_prediction(monkeypatch):
+    import apps.api.main as module
+    from apps.api.service.schemas import ModelStatus,Prediction
+    class Model:
+        status=ModelStatus(available=True,mode='trained',version='test-model',message='mock model')
+        def predict(self,body):
+            return Prediction(predicted_price=123,price_per_sqm=123/body.building_size,units='test units',model=self.status,warnings=[])
+    monkeypatch.setattr(module,'Inference',lambda directory:Model())
+    monkeypatch.setenv('AMLAAAK_DATA_MODE','prepared')
+    monkeypatch.delenv('HF_TOKEN',raising=False)
+    monkeypatch.delenv('AMLAAAK_API_TOKEN',raising=False)
+    client=TestClient(module.create_app(model_dir=''))
+    body=dict(city_slug='tehran',cat3_slug='apartment-sell',building_size=90,rooms_count=2,floor=1,
+        total_floors_count=3,construction_year=1395,has_parking=True,has_elevator=False,has_balcony=False,has_warehouse=True)
+    result=client.post('/api/v1/valuation',json=body)
+    assert result.status_code==200 and result.json()['prediction']['predicted_price']==123
+    assert result.json()['comparables']==[] and not result.json()['coverage']['exhaustive']
+    assert client.get('/api/v1/dashboard/summary').status_code==503
+
+
+def test_release_verification_is_bounded_and_checks_lfs_inventory(archive):
+    from scripts.verify_prepared_release import verify_release
+    output,manifest,_=archive
+    provider,_=provider_for(output)
+    release=dict(repo=provider.repo,revision=provider.revision,manifest_sha256=provider.manifest_hash,
+        expected_source_rows=22,expected_prepared_rows=18,expected_cities=2,expected_indexed_files=len(manifest['files']))
+    siblings=[SimpleNamespace(rfilename='prepared/'+path,size=info['bytes'],
+        lfs={'sha256':info['sha256']} if path!='catalog.json' else None) for path,info in manifest['files'].items()]
+    siblings.append(SimpleNamespace(rfilename='prepared/manifest.json',size=1,lfs=None))
+    class API:
+        def dataset_info(self,**kwargs):
+            if kwargs['repo_id']=='divarofficial/real_estate_ads':
+                return SimpleNamespace(id=kwargs['repo_id'],sha=SOURCE_REVISION,siblings=[
+                    SimpleNamespace(rfilename=archive[2]['source_path'],lfs={'sha256':archive[2]['sha256']})])
+            return SimpleNamespace(id=provider.repo,sha=provider.revision,private=True,siblings=siblings)
+    result=verify_release('test-token',release,api=API(),provider=provider)
+    assert result['hub_lfs_sha256_matches']==len(manifest['files'])-1
+    assert result['direct_indexed_file_body_hash_matches']==5 and not result['full_archive_body_downloaded']
+    siblings[0].size+=1
+    with pytest.raises(ValueError,match='size mismatch'):
+        verify_release('test-token',release,api=API(),provider=provider)
